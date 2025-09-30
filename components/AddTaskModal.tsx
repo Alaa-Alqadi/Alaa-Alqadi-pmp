@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Task, TaskPriority, TaskStatus } from '../types';
 import Modal from './Modal';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ const getTaskProgressTextColor = (percentage: number): string => {
 
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, task, teamMembers }) => {
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignee, setAssignee] = useState(teamMembers[0] || '');
@@ -81,19 +83,19 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, ta
   const commonInputClasses = "w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-secondary";
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={task ? 'تعديل المهمة' : 'إنشاء مهمة جديدة'}>
+    <Modal isOpen={isOpen} onClose={onClose} title={task ? t.editTaskTitle : t.createNewTaskTitle}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="taskTitle" className="block text-sm font-medium text-slate-300 mb-1">اسم المهمة</label>
+          <label htmlFor="taskTitle" className="block text-sm font-medium text-slate-300 mb-1">{t.taskNameLabel}</label>
           <input type="text" id="taskTitle" value={title} onChange={(e) => setTitle(e.target.value)} className={commonInputClasses} required autoFocus />
         </div>
         <div>
-          <label htmlFor="taskDescription" className="block text-sm font-medium text-slate-300 mb-1">الوصف</label>
+          <label htmlFor="taskDescription" className="block text-sm font-medium text-slate-300 mb-1">{t.descriptionLabel}</label>
           <textarea id="taskDescription" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={commonInputClasses} />
         </div>
         <div className="grid grid-cols-2 gap-4">
             <div>
-                <label htmlFor="taskStartDate" className="block text-sm font-medium text-slate-300 mb-1">تاريخ البدء</label>
+                <label htmlFor="taskStartDate" className="block text-sm font-medium text-slate-300 mb-1">{t.startDateLabel}</label>
                 <input 
                     type="date" 
                     id="taskStartDate" 
@@ -104,7 +106,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, ta
                 />
             </div>
             <div>
-                <label htmlFor="taskEndDate" className="block text-sm font-medium text-slate-300 mb-1">تاريخ الانتهاء</label>
+                <label htmlFor="taskEndDate" className="block text-sm font-medium text-slate-300 mb-1">{t.endDateLabel}</label>
                 <input 
                     type="date" 
                     id="taskEndDate" 
@@ -117,22 +119,21 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, ta
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="taskAssignee" className="block text-sm font-medium text-slate-300 mb-1">المسؤول</label>
+            <label htmlFor="taskAssignee" className="block text-sm font-medium text-slate-300 mb-1">{t.assigneeLabel}</label>
             <select id="taskAssignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} className={commonInputClasses}>
               {teamMembers.map(member => <option key={member} value={member}>{member}</option>)}
             </select>
           </div>
           <div>
-            <label htmlFor="taskPriority" className="block text-sm font-medium text-slate-300 mb-1">الأولوية</label>
+            <label htmlFor="taskPriority" className="block text-sm font-medium text-slate-300 mb-1">{t.priorityLabel}</label>
             <select id="taskPriority" value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} className={commonInputClasses}>
-              {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+              {Object.values(TaskPriority).map(p => <option key={p} value={p}>{t[`priority_${p}`]}</option>)}
             </select>
           </div>
         </div>
          <div>
             <label htmlFor="taskCompletion" className="block text-sm font-medium text-slate-300 mb-1">
-                نسبة الإنجاز: <span className={`font-bold ${getTaskProgressTextColor(completionPercentage)}`}>{completionPercentage}%</span> 
-                (الحالة: <span className={`${getTaskProgressTextColor(completionPercentage)}`}>{status}</span>)
+                {t.completionPercentageLabel(completionPercentage, t[`status_${status}`])}
             </label>
             <input
                 id="taskCompletion"
@@ -146,10 +147,10 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, ta
             />
          </div>
 
-        <div className="mt-6 flex justify-end space-x-3 space-x-reverse">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors">إلغاء</button>
+        <div className="mt-6 flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors">{t.cancel}</button>
           <button type="submit" className="px-4 py-2 rounded-md text-sm font-medium text-white bg-brand-secondary hover:bg-brand-secondary-hover transition-colors">
-            {task ? 'حفظ التغييرات' : 'إضافة مهمة'}
+            {task ? t.saveChanges : t.addTaskButton}
           </button>
         </div>
       </form>

@@ -1,13 +1,13 @@
 export enum TaskStatus {
-  TODO = 'قيد التنفيذ',
-  IN_PROGRESS = 'جاري العمل',
-  DONE = 'مكتمل',
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
 }
 
 export enum TaskPriority {
-  LOW = 'منخفضة',
-  MEDIUM = 'متوسطة',
-  HIGH = 'عالية',
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
 }
 
 export interface Task {

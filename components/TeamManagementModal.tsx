@@ -3,6 +3,7 @@ import Modal from './Modal';
 import { EditIcon } from './icons/EditIcon';
 import { TrashIcon } from './icons/TrashIcon';
 import { PlusIcon } from './icons/PlusIcon';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface TeamManagementModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
   onUpdateMember,
   onDeleteMember,
 }) => {
+  const { t } = useLanguage();
   const [newMemberName, setNewMemberName] = useState('');
   const [editingMember, setEditingMember] = useState<{ oldName: string; newName: string } | null>(null);
 
@@ -49,9 +51,9 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
   const commonInputClasses = "w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-secondary";
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="إدارة فريق العمل">
+    <Modal isOpen={isOpen} onClose={onClose} title={t.manageTeamTitle}>
       <div className="space-y-4">
-        <div className="max-h-60 overflow-y-auto pr-2 -mr-2">
+        <div className="max-h-60 overflow-y-auto pe-2 -me-2">
             <ul className="space-y-2">
             {teamMembers.map((member) => (
                 <li key={member} className="flex items-center justify-between p-2 bg-slate-750 rounded-md">
@@ -70,8 +72,8 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                 <div className="flex items-center space-x-2 space-x-reverse">
                     {editingMember?.oldName === member ? (
                     <>
-                        <button onClick={handleSaveEdit} className="px-2 py-1 text-sm rounded bg-green-600 hover:bg-green-500 text-white">حفظ</button>
-                        <button onClick={handleCancelEdit} className="px-2 py-1 text-sm rounded bg-slate-600 hover:bg-slate-500 text-white">إلغاء</button>
+                        <button onClick={handleSaveEdit} className="px-2 py-1 text-sm rounded bg-green-600 hover:bg-green-500 text-white">{t.save}</button>
+                        <button onClick={handleCancelEdit} className="px-2 py-1 text-sm rounded bg-slate-600 hover:bg-slate-500 text-white">{t.cancel}</button>
                     </>
                     ) : (
                     <>
@@ -84,12 +86,12 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
             ))}
             </ul>
         </div>
-        <div className="flex space-x-2 space-x-reverse pt-4 border-t border-slate-700">
+        <div className="flex gap-2 pt-4 border-t border-slate-700">
           <input
             type="text"
             value={newMemberName}
             onChange={(e) => setNewMemberName(e.target.value)}
-            placeholder="إضافة عضو جديد..."
+            placeholder={t.addNewMemberPlaceholder}
             className={commonInputClasses}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           />

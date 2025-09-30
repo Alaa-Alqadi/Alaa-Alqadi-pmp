@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { PlusIcon } from './icons/PlusIcon';
 import { Project } from '../types';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface EditProjectModalProps {
 }
 
 const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, onUpdateProject, project, clients, onAddClient }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -54,11 +56,11 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
   const commonInputClasses = "w-full bg-slate-900 border border-slate-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-brand-secondary";
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="تعديل المشروع">
+    <Modal isOpen={isOpen} onClose={onClose} title={t.editProjectTitle}>
       <form onSubmit={handleSubmit}>
         <div className="space-y-4">
           <div>
-            <label htmlFor="projectName" className="block text-sm font-medium text-slate-300 mb-1">اسم المشروع</label>
+            <label htmlFor="projectName" className="block text-sm font-medium text-slate-300 mb-1">{t.projectNameLabel}</label>
             <input
               type="text"
               id="projectName"
@@ -70,7 +72,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
             />
           </div>
           <div>
-            <label htmlFor="projectDescription" className="block text-sm font-medium text-slate-300 mb-1">الوصف (اختياري)</label>
+            <label htmlFor="projectDescription" className="block text-sm font-medium text-slate-300 mb-1">{t.descriptionOptionalLabel}</label>
             <textarea
               id="projectDescription"
               value={description}
@@ -81,7 +83,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="contractId" className="block text-sm font-medium text-slate-300 mb-1">رقم العقد (اختياري)</label>
+              <label htmlFor="contractId" className="block text-sm font-medium text-slate-300 mb-1">{t.contractNumberOptionalLabel}</label>
               <input
                 type="text"
                 id="contractId"
@@ -91,7 +93,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
               />
             </div>
             <div>
-              <label htmlFor="quoteId" className="block text-sm font-medium text-slate-300 mb-1">رقم عرض السعر (اختياري)</label>
+              <label htmlFor="quoteId" className="block text-sm font-medium text-slate-300 mb-1">{t.quoteNumberOptionalLabel}</label>
               <input
                 type="text"
                 id="quoteId"
@@ -103,7 +105,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-slate-300 mb-1">تاريخ البدء</label>
+                <label htmlFor="startDate" className="block text-sm font-medium text-slate-300 mb-1">{t.startDateLabel}</label>
                 <input 
                     type="date" 
                     id="startDate" 
@@ -114,7 +116,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
                 />
             </div>
             <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-slate-300 mb-1">تاريخ الانتهاء</label>
+                <label htmlFor="endDate" className="block text-sm font-medium text-slate-300 mb-1">{t.endDateLabel}</label>
                 <input 
                     type="date" 
                     id="endDate" 
@@ -126,7 +128,7 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
             </div>
           </div>
           <div>
-            <label htmlFor="clientName" className="block text-sm font-medium text-slate-300 mb-1">العميل</label>
+            <label htmlFor="clientName" className="block text-sm font-medium text-slate-300 mb-1">{t.clientLabel}</label>
             <select 
                 id="clientName" 
                 value={clientName} 
@@ -134,16 +136,16 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
                 className={commonInputClasses}
                 required
             >
-                <option value="" disabled>اختر عميلاً</option>
+                <option value="" disabled>{t.selectClientPlaceholder}</option>
                 {clients.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div className="flex space-x-2 space-x-reverse pt-2 border-t border-slate-700/50">
+          <div className="flex gap-2 pt-2 border-t border-slate-700/50">
             <input
                 type="text"
                 value={newClientName}
                 onChange={(e) => setNewClientName(e.target.value)}
-                placeholder="إضافة عميل جديد..."
+                placeholder={t.addNewClientPlaceholder}
                 className={`${commonInputClasses} text-sm`}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewClient())}
             />
@@ -152,12 +154,12 @@ const EditProjectModal: React.FC<EditProjectModalProps> = ({ isOpen, onClose, on
             </button>
         </div>
         </div>
-        <div className="mt-6 flex justify-end space-x-3 space-x-reverse">
+        <div className="mt-6 flex justify-end gap-3">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors">
-            إلغاء
+            {t.cancel}
           </button>
           <button type="submit" className="px-4 py-2 rounded-md text-sm font-medium text-white bg-brand-secondary hover:bg-brand-secondary-hover transition-colors">
-            حفظ التغييرات
+            {t.saveChanges}
           </button>
         </div>
       </form>

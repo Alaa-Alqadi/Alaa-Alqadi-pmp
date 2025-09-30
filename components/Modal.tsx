@@ -1,5 +1,5 @@
-
 import React, { useEffect, useRef } from 'react';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface ModalProps {
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {

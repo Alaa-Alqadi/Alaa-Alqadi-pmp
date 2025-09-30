@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Project } from '../types';
 import ProjectSummaryCard from './ProjectSummaryCard';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface DashboardViewProps {
   projects: Project[];
@@ -8,6 +9,8 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ projects, onSelectProject }) => {
+  const { t } = useLanguage();
+
   const groupedProjects = useMemo(() => {
     return projects.reduce((acc, project) => {
       const client = project.clientName;
@@ -24,15 +27,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ projects, onSelectProject
   return (
     <div className="h-full">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white">لوحة المعلومات</h1>
-        <p className="text-slate-400 mt-1">نظرة عامة على جميع المشاريع النشطة.</p>
+        <h1 className="text-3xl font-bold text-white">{t.dashboardTitle}</h1>
+        <p className="text-slate-400 mt-1">{t.dashboardSubtitle}</p>
       </header>
       
       {projects.length === 0 ? (
         <div className="flex items-center justify-center h-full -mt-16">
             <div className="text-center text-slate-500">
-                <h2 className="text-2xl font-semibold">لا توجد مشاريع حتى الآن</h2>
-                <p className="mt-2">أنشئ مشروعًا جديدًا من الشريط الجانبي للبدء.</p>
+                <h2 className="text-2xl font-semibold">{t.noProjectsTitle}</h2>
+                <p className="mt-2">{t.noProjectsSubtitle}</p>
             </div>
         </div>
       ) : (

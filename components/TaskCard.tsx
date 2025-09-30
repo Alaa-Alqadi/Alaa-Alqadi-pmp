@@ -6,6 +6,7 @@ import { TrashIcon } from './icons/TrashIcon';
 import { CalendarIcon } from './icons/CalendarIcon';
 import { WarningIcon } from './icons/WarningIcon';
 import { PlusCircleIcon } from './icons/PlusCircleIcon';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface TaskCardProps {
   task: Task;
@@ -29,6 +30,7 @@ const getTaskProgressAccentColor = (percentage: number): string => {
 };
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onUpdateTask }) => {
+  const { t } = useLanguage();
   const { border } = priorityClasses[task.priority];
 
   const handlePercentageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,7 +41,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onUpdateTas
   today.setHours(0, 0, 0, 0); // Normalize to the beginning of the day for accurate comparison
   const isOverdue = new Date(task.endDate) < today && task.completionPercentage < 100;
 
-  const cardClasses = `p-4 rounded-lg shadow-lg border-r-4 group transition-all duration-300 ${
+  const cardClasses = `p-4 rounded-lg shadow-lg border-e-4 group transition-all duration-300 ${
     isOverdue
       ? 'bg-red-950/40 border-red-500 animate-pulse-border'
       : `bg-slate-800 ${border}`
@@ -49,12 +51,12 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onUpdateTas
   return (
     <div className={cardClasses}>
       <div className="flex justify-between items-start mb-2">
-        <h4 className="font-bold text-white mb-1 pr-2">{task.title}</h4>
+        <h4 className="font-bold text-white mb-1 ps-2">{task.title}</h4>
         <div className="flex items-center space-x-2 space-x-reverse opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(task)} className="p-1 text-slate-400 hover:text-white" aria-label="تعديل المهمة">
+          <button onClick={() => onEdit(task)} className="p-1 text-slate-400 hover:text-white" aria-label={t.editTask}>
             <EditIcon className="w-4 h-4" />
           </button>
-          <button onClick={() => onDelete(task.id)} className="p-1 text-slate-400 hover:text-red-400" aria-label="حذف المهمة">
+          <button onClick={() => onDelete(task.id)} className="p-1 text-slate-400 hover:text-red-400" aria-label={t.deleteTask}>
             <TrashIcon className="w-4 h-4" />
           </button>
         </div>
@@ -65,8 +67,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onUpdateTas
         {isOverdue && (
             <div className="relative flex items-center group/tooltip">
                 <WarningIcon className="w-4 h-4 text-red-400" />
-                <span className="absolute bottom-full mb-2 -right-1/2 translate-x-1/2 w-max px-2 py-1 bg-slate-950 text-white text-xs rounded-md shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10">
-                    هذه المهمة متأخرة
+                <span className="absolute bottom-full mb-2 -end-1/2 translate-x-1/2 rtl:-translate-x-1/2 w-max px-2 py-1 bg-slate-950 text-white text-xs rounded-md shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-10">
+                    {t.overdueTaskTooltip}
                 </span>
             </div>
         )}
@@ -78,7 +80,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onUpdateTas
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
-            <span className="font-medium text-slate-400">التقدم</span>
+            <span className="font-medium text-slate-400">{t.progress}</span>
             <span className="font-bold text-white">{task.completionPercentage}%</span>
         </div>
         <input 
@@ -95,16 +97,16 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete, onUpdateTas
       <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-700/50">
         <div className="flex items-center text-slate-400 gap-3 text-sm">
             <div className="flex items-center">
-                <UserIcon className="w-4 h-4 ml-1 text-slate-500" />
+                <UserIcon className="w-4 h-4 me-1 text-slate-500" />
                 {task.assignee}
             </div>
-            <div className="flex items-center text-xs" title={`أنشئت في ${task.createdDate}`}>
-                <PlusCircleIcon className="w-4 h-4 ml-1 text-slate-500" />
+            <div className="flex items-center text-xs" title={t.createdOn(task.createdDate)}>
+                <PlusCircleIcon className="w-4 h-4 me-1 text-slate-500" />
                 <span>{task.createdDate}</span>
             </div>
         </div>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${priorityClasses[task.priority].bg} ${priorityClasses[task.priority].text}`}>
-            {task.priority}
+            {t[`priority_${task.priority}`]}
         </span>
       </div>
     </div>

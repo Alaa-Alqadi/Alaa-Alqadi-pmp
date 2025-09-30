@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Task, TaskStatus } from '../types';
 import TaskCard from './TaskCard';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface KanbanBoardProps {
   tasks: Task[];
@@ -24,21 +25,16 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, count, children, has
       <h3 className={`font-semibold transition-colors duration-300 ${hasOverdueTasks ? 'text-red-300' : 'text-slate-300'}`}>{title}</h3>
       <span className={`text-xs font-bold px-2 py-1 rounded-full transition-colors duration-300 ${hasOverdueTasks ? 'bg-red-500/50 text-white' : 'bg-slate-700 text-slate-300'}`}>{count}</span>
     </div>
-    <div className="flex-1 overflow-y-auto space-y-4 -ml-2 pl-2">
+    <div className="flex-1 overflow-y-auto space-y-4 -ms-2 ps-2">
       {children}
     </div>
   </div>
 );
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onEditTask, onDeleteTask, onUpdateTask, columnOrder, onColumnReorder }) => {
+  const { t } = useLanguage();
   const [draggedColumn, setDraggedColumn] = useState<TaskStatus | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
-
-  const statusToTitle: Record<TaskStatus, string> = {
-    [TaskStatus.TODO]: 'قيد التنفيذ',
-    [TaskStatus.IN_PROGRESS]: 'جاري العمل',
-    [TaskStatus.DONE]: 'مكتمل',
-  };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, status: TaskStatus) => {
     e.dataTransfer.setData('text/plain', status);
@@ -98,7 +94,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onEditTask, onDeleteTa
             onDragEnd={handleDragEnd}
             className={`w-full md:w-1/3 flex flex-col transition-all duration-200 ${draggedColumn === status ? 'opacity-30' : 'opacity-100'} ${dragOverColumn === status && draggedColumn !== status ? 'outline outline-2 outline-brand-secondary outline-dashed rounded-lg' : ''}`}
           >
-            <KanbanColumn title={statusToTitle[status]} count={filteredTasks.length} hasOverdueTasks={hasOverdueTasks}>
+            <KanbanColumn title={t[`status_${status}`]} count={filteredTasks.length} hasOverdueTasks={hasOverdueTasks}>
               {filteredTasks.map((task) => (
                 <TaskCard
                   key={task.id}

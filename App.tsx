@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Project, Task, TaskStatus } from './types';
 import { INITIAL_PROJECTS, INITIAL_TEAM_MEMBERS, INITIAL_CLIENTS, ALLOWED_EMAILS, CORRECT_PASSWORD } from './constants';
 import Sidebar from './components/Sidebar';
@@ -10,6 +10,7 @@ import AddTaskModal from './components/AddTaskModal';
 import TeamManagementModal from './components/TeamManagementModal';
 import Login from './components/Login';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import { useLanguage } from './hooks/useLanguage';
 
 const getStatusFromPercentage = (percentage: number): TaskStatus => {
   if (percentage >= 100) return TaskStatus.DONE;
@@ -18,10 +19,47 @@ const getStatusFromPercentage = (percentage: number): TaskStatus => {
 };
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const { t } = useLanguage();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      const savedAuth = localStorage.getItem('isAuthenticated');
+      return savedAuth ? JSON.parse(savedAuth) : false;
+    } catch (error) {
+      console.error("Failed to load auth state from localStorage", error);
+      return false;
+    }
+  });
+
+  const [currentUser, setCurrentUser] = useState<string | null>(() => {
+    try {
+      const savedUser = localStorage.getItem('currentUser');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (error) {
+      console.error("Failed to load current user from localStorage", error);
+      return null;
+    }
+  });
+
+  const [projects, setProjects] = useState<Project[]>(() => {
+    try {
+      const savedProjects = localStorage.getItem('projects');
+      return savedProjects ? JSON.parse(savedProjects) : INITIAL_PROJECTS;
+    } catch (error) {
+      console.error("Failed to load projects from localStorage", error);
+      return INITIAL_PROJECTS;
+    }
+  });
+  
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
+    try {
+      const savedProjectId = localStorage.getItem('selectedProjectId');
+      return savedProjectId ? JSON.parse(savedProjectId) : null;
+    } catch (error) {
+      console.error("Failed to load selected project ID from localStorage", error);
+      return null;
+    }
+  });
+
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -30,15 +68,36 @@ const App: React.FC = () => {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [teamMembers, setTeamMembers] = useState<string[]>(INITIAL_TEAM_MEMBERS);
-  const [clients, setClients] = useState<string[]>(INITIAL_CLIENTS);
+  
+  const [teamMembers, setTeamMembers] = useState<string[]>(() => {
+    try {
+      const savedTeamMembers = localStorage.getItem('teamMembers');
+      return savedTeamMembers ? JSON.parse(savedTeamMembers) : INITIAL_TEAM_MEMBERS;
+    } catch (error) {
+      console.error("Failed to load team members from localStorage", error);
+      return INITIAL_TEAM_MEMBERS;
+    }
+  });
+
+  const [clients, setClients] = useState<string[]>(() => {
+    try {
+      const savedClients = localStorage.getItem('clients');
+      return savedClients ? JSON.parse(savedClients) : INITIAL_CLIENTS;
+    } catch (error) {
+      console.error("Failed to load clients from localStorage", error);
+      return INITIAL_CLIENTS;
+    }
+  });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [columnOrder, setColumnOrder] = useState<TaskStatus[]>(() => {
     try {
       const savedOrder = localStorage.getItem('kanbanColumnOrder');
       if (savedOrder) {
         const parsedOrder = JSON.parse(savedOrder);
-        if (Array.isArray(parsedOrder) && parsedOrder.every(item => Object.values(TaskStatus).includes(item))) {
+        // Validate saved order
+        const validStatuses = Object.values(TaskStatus);
+        if (Array.isArray(parsedOrder) && parsedOrder.length === validStatuses.length && parsedOrder.every(item => validStatuses.includes(item))) {
           return parsedOrder;
         }
       }
@@ -47,6 +106,47 @@ const App: React.FC = () => {
     }
     return [TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.DONE];
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('isAuthenticated', JSON.stringify(isAuthenticated));
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } catch (error) {
+      console.error("Failed to save auth state to localStorage", error);
+    }
+  }, [isAuthenticated, currentUser]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('projects', JSON.stringify(projects));
+    } catch (error) {
+      console.error("Failed to save projects to localStorage", error);
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('selectedProjectId', JSON.stringify(selectedProjectId));
+    } catch (error) {
+      console.error("Failed to save selected project ID to localStorage", error);
+    }
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('teamMembers', JSON.stringify(teamMembers));
+    } catch (error) {
+      console.error("Failed to save team members to localStorage", error);
+    }
+  }, [teamMembers]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('clients', JSON.stringify(clients));
+    } catch (error) {
+      console.error("Failed to save clients to localStorage", error);
+    }
+  }, [clients]);
 
   const handleLogin = useCallback((email: string, password: string): boolean => {
     const isEmailValid = ALLOWED_EMAILS.includes(email.toLowerCase());
@@ -305,6 +405,7 @@ const App: React.FC = () => {
       
       {isProjectModalOpen && (
         <AddProjectModal
+          isOpen={isProjectModalOpen}
           onClose={() => setIsProjectModalOpen(false)}
           onAddProject={handleAddProject}
           clients={clients}
@@ -346,7 +447,6 @@ const App: React.FC = () => {
           teamMembers={teamMembers}
           onAddMember={handleAddTeamMember}
           onUpdateMember={handleUpdateTeamMember}
-          // Fix: Corrected function name from handleDeleteMember to handleDeleteTeamMember
           onDeleteMember={handleDeleteTeamMember}
         />
       )}
