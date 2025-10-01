@@ -1,7 +1,7 @@
 // FIX: Replaced placeholder content with the main application component, including state management, component routing, and event handlers.
 import React, { useState, useEffect, useCallback } from 'react';
 import { Project, Task, Client, TaskStatus, Risk } from './types';
-import { INITIAL_PROJECTS, INITIAL_CLIENTS, INITIAL_TEAM_MEMBERS, DEFAULT_PASSWORD } from './constants';
+import { INITIAL_PROJECTS, INITIAL_CLIENTS, INITIAL_TEAM_MEMBERS, DEFAULT_PASSWORD, ALLOWED_EMAILS } from './constants';
 import Sidebar from './components/Sidebar';
 import ProjectView from './components/ProjectView';
 import DashboardView from './components/DashboardView';
@@ -21,6 +21,13 @@ import { useLanguage } from './hooks/useLanguage';
 import { TranslationKey } from './translations';
 
 type View = 'role_selection' | 'team_login' | 'client_login' | 'team_dashboard' | 'client_view';
+
+const getStatusFromPercentage = (percentage: number): TaskStatus => {
+  if (percentage === 100) return TaskStatus.DONE;
+  if (percentage >= 91) return TaskStatus.HANDOVER;
+  if (percentage > 0) return TaskStatus.IN_PROGRESS;
+  return TaskStatus.TODO;
+};
 
 const App: React.FC = () => {
   const { t } = useLanguage();
@@ -87,6 +94,20 @@ const App: React.FC = () => {
   const handleTeamLogin = (email: string) => {
     setCurrentUser(email);
     setView('team_dashboard');
+  };
+
+  const checkTeamPassword = (email: string, pass: string): boolean => {
+    const lowerCaseEmail = email.toLowerCase();
+    
+    if (!ALLOWED_EMAILS.includes(lowerCaseEmail)) {
+        return false;
+    }
+
+    if (lowerCaseEmail === 'alaa@flexi-is.com') {
+        return pass === 'FIS2030';
+    }
+
+    return pass === password;
   };
   
   const handleClientLogin = (clientId: string, quoteId: string): boolean => {
@@ -164,16 +185,30 @@ const App: React.FC = () => {
 
   const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdDate' | 'status'>) => {
     if (taskToEdit) { // Editing existing task
-      setProjects(prev => prev.map(p => p.id === selectedProjectId ? {
-        ...p,
-        tasks: p.tasks.map(t => t.id === taskToEdit.id ? { ...taskToEdit, ...taskData } : t)
-      } : p));
+      setProjects(prev => prev.map(p => {
+        if (p.id !== selectedProjectId) return p;
+        return {
+          ...p,
+          tasks: p.tasks.map(t => {
+            if (t.id !== taskToEdit.id) return t;
+
+            const updatedTask = { ...t, ...taskData };
+            
+            // Auto-update status based on percentage, unless it's cancelled
+            if (updatedTask.status !== TaskStatus.CANCELLED) {
+              updatedTask.status = getStatusFromPercentage(updatedTask.completionPercentage);
+            }
+            return updatedTask;
+          })
+        };
+      }));
     } else { // Adding new task
+      const status = getStatusFromPercentage(taskData.completionPercentage);
       const newTask: Task = {
         ...taskData,
         id: `task-${Date.now()}`,
         createdDate: new Date().toISOString().split('T')[0],
-        status: TaskStatus.TODO,
+        status,
       };
       setProjects(prev => prev.map(p => p.id === selectedProjectId ? { ...p, tasks: [...p.tasks, newTask] } : p));
     }
@@ -191,10 +226,25 @@ const App: React.FC = () => {
   };
 
   const handleUpdateTask = (taskId: string, updatedProperties: Partial<Task>) => {
-    setProjects(prev => prev.map(p => p.id === selectedProjectId ? {
-      ...p,
-      tasks: p.tasks.map(t => t.id === taskId ? { ...t, ...updatedProperties } : t)
-    } : p));
+    setProjects(prev => prev.map(p => {
+      if (p.id !== selectedProjectId) return p;
+
+      return {
+        ...p,
+        tasks: p.tasks.map(t => {
+          if (t.id !== taskId) return t;
+          
+          const updatedTask = { ...t, ...updatedProperties };
+
+          // If completionPercentage is changed and status is not 'Cancelled', update status automatically
+          if (updatedProperties.completionPercentage !== undefined && updatedTask.status !== TaskStatus.CANCELLED) {
+            updatedTask.status = getStatusFromPercentage(updatedProperties.completionPercentage);
+          }
+
+          return updatedTask;
+        })
+      };
+    }));
   };
   
   // Risk handlers
@@ -251,7 +301,7 @@ const App: React.FC = () => {
   }
   
   if (view === 'team_login') {
-    return <Login onLogin={handleTeamLogin} onBack={() => setView('role_selection')} checkPassword={(p) => p === password} />;
+    return <Login onLogin={handleTeamLogin} onBack={() => setView('role_selection')} checkPassword={checkTeamPassword} />;
   }
 
   if (view === 'client_login') {
