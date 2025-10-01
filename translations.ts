@@ -12,6 +12,8 @@ export const translations = {
     close: 'Close',
     logout: 'Logout',
     not_applicable: 'N/A',
+    tasks: 'Tasks',
+    print: 'Print',
 
     // Sidebar
     add_project: 'Add Project',
@@ -36,6 +38,7 @@ export const translations = {
     execution_phase: 'Execution Phase',
     finishing_phase: 'Finishing Phase',
     handover_phase: 'Handover Phase',
+    project_report: 'Project Report',
 
     // Task Status
     todo: 'To Do',
@@ -116,6 +119,11 @@ export const translations = {
     reset_password_confirm: 'Are you sure you want to reset your password to the default? You will be logged out.',
     password_reset_logout_alert: 'Password has been reset to default. You will now be logged out.',
 
+    // Report Modal
+    task_summary: 'Task Summary',
+    total_tasks: 'Total Tasks',
+    status: 'Status',
+
     // Language Switcher
     switch_to_arabic: 'Switch to Arabic',
     switch_to_english: 'Switch to English',
@@ -133,6 +141,8 @@ export const translations = {
     close: 'إغلاق',
     logout: 'تسجيل الخروج',
     not_applicable: 'غير متاح',
+    tasks: 'المهام',
+    print: 'طباعة',
 
     // Sidebar
     add_project: 'إضافة مشروع',
@@ -157,6 +167,7 @@ export const translations = {
     execution_phase: 'مرحلة التنفيذ',
     finishing_phase: 'مرحلة التشطيبات',
     handover_phase: 'مرحلة التسليم',
+    project_report: 'تقرير المشروع',
     
     // Task Status
     todo: 'قيد التنفيذ',
@@ -237,6 +248,11 @@ export const translations = {
     reset_password_confirm: 'هل أنت متأكد أنك تريد إعادة تعيين كلمة المرور إلى الافتراضي؟ سيتم تسجيل خروجك.',
     password_reset_logout_alert: 'تمت إعادة تعيين كلمة المرور إلى الافتراضي. سيتم الآن تسجيل خروجك.',
     
+    // Report Modal
+    task_summary: 'ملخص المهام',
+    total_tasks: 'إجمالي المهام',
+    status: 'الحالة',
+
     // Language Switcher
     switch_to_arabic: 'التحويل إلى العربية',
     switch_to_english: 'التحويل إلى الإنجليزية',
