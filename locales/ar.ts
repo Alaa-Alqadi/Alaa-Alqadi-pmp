@@ -9,6 +9,7 @@ export const ar: Translations = {
   saveChanges: 'حفظ التغييرات',
   delete: 'حذف',
   edit: 'تعديل',
+  close: 'إغلاق',
 
   // Login
   loginTitle: 'FIS-PMP',
@@ -19,6 +20,26 @@ export const ar: Translations = {
   loginPasswordPlaceholder: '••••••••',
   loginButton: 'تسجيل الدخول',
   loginError: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+  togglePasswordVisibility: 'إظهار/إخفاء كلمة المرور',
+  forgotPassword: 'هل نسيت كلمة المرور؟',
+  orSeparator: 'أو',
+
+  // Forgot Password Modal
+  resetPasswordTitle: 'إعادة تعيين كلمة المرور',
+  resetPasswordInstruction: 'أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.',
+  sendResetLinkButton: 'إرسال رابط إعادة التعيين',
+  resetPasswordSuccessMessage: 'إذا كان هناك حساب لهذا البريد الإلكتروني، فقد تم إرسال رابط إعادة التعيين.',
+  resetPasswordHintFlexi: 'مستخدمو flexi-is.com يمكنهم استخدام كلمة المرور الافتراضية `Flexi@2030$` لتسجيل الدخول.',
+
+  // Change Password Modal
+  changePassword: 'تغيير كلمة المرور',
+  currentPasswordLabel: 'كلمة المرور الحالية',
+  newPasswordLabel: 'كلمة المرور الجديدة',
+  confirmNewPasswordLabel: 'تأكيد كلمة المرور الجديدة',
+  passwordChangedSuccess: 'تم تغيير كلمة المرور بنجاح.',
+  wrongCurrentPassword: 'كلمة المرور الحالية غير صحيحة.',
+  passwordsDoNotMatch: 'كلمتا المرور الجديدتان غير متطابقتين.',
+  passwordResetAfterAttempts: 'تم إدخال كلمة المرور الحالية بشكل خاطئ 3 مرات. تم إعادة تعيين كلمة المرور إلى الوضع الافتراضي.',
 
   // Sidebar
   dashboard: 'لوحة المعلومات',
@@ -36,6 +57,7 @@ export const ar: Translations = {
 
   // Project Summary Card
   progress: 'نسبة الإنجاز',
+  completed: 'مكتمل',
 
   // Project View
   editProject: 'تعديل المشروع',
@@ -118,4 +140,14 @@ export const ar: Translations = {
   csvStatus: 'الحالة',
   csvPriority: 'الأولوية',
   csvCompletionPercentage: 'نسبة الإنجاز',
+
+  // Sync Conflict Modal
+  syncConflictTitle: 'تم اكتشاف تعارض في البيانات',
+  localFileSyncConflictTitle: 'تم اكتشاف تعارض في الملف',
+  syncConflictMessage: 'بيانات مشروعك في Google Drive تختلف عن جلستك الحالية. أي نسخة تود الاحتفاظ بها؟',
+  localFileSyncConflictMessage: 'الملف المحلي يختلف عن بيانات جلستك الحالية. أي نسخة تود الاحتفاظ بها؟',
+  syncConflictDownloadButton: 'استخدام نسخة Google Drive',
+  localFileSyncOpenButton: 'استخدام النسخة من الملف',
+  syncConflictUploadButton: 'استخدام نسخة الجلسة الحالية',
+  localFileSyncSaveButton: 'الكتابة فوق الملف ببيانات الجلسة',
 };

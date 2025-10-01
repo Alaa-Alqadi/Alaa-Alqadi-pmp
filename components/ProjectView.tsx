@@ -23,19 +23,17 @@ interface ProjectViewProps {
 }
 
 const getProjectProgressColor = (percentage: number): string => {
-  if (percentage <= 40) return 'bg-green-600';
-  if (percentage <= 50) return 'bg-green-400';
-  if (percentage <= 70) return 'bg-orange-500';
-  if (percentage <= 90) return 'bg-yellow-500';
-  return 'bg-red-500';
+  if (percentage >= 100) return 'bg-green-500';
+  if (percentage >= 75) return 'bg-sky-500';
+  if (percentage >= 50) return 'bg-yellow-500';
+  return 'bg-orange-500';
 };
 
 const getProjectProgressTextColor = (percentage: number): string => {
-  if (percentage <= 40) return 'text-green-400';
-  if (percentage <= 50) return 'text-green-300';
-  if (percentage <= 70) return 'text-orange-400';
-  if (percentage <= 90) return 'text-yellow-400';
-  return 'text-red-400';
+  if (percentage >= 100) return 'text-green-400';
+  if (percentage >= 75) return 'text-sky-400';
+  if (percentage >= 50) return 'text-yellow-400';
+  return 'text-orange-400';
 };
 
 const ProjectView: React.FC<ProjectViewProps> = ({ project, onAddTask, onEditTask, onDeleteTask, onUpdateTask, onEditProject, onDeleteProject, columnOrder, onColumnReorder }) => {
@@ -124,6 +122,9 @@ const ProjectView: React.FC<ProjectViewProps> = ({ project, onAddTask, onEditTas
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-white">{project.name}</h1>
+            {completionPercentage >= 100 && (
+              <span className="bg-green-500/20 text-green-300 text-sm font-semibold px-3 py-1 rounded-full self-center">{t.completed}</span>
+            )}
             <button
                 onClick={() => onEditProject(project)}
                 className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors"

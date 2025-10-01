@@ -34,3 +34,15 @@ export interface Project {
   quoteId?: string;
   tasks: Task[];
 }
+
+export interface AppData {
+  projects: Project[];
+  teamMembers: string[];
+  clients: string[];
+  columnOrder: TaskStatus[];
+}
+
+export interface GDriveFolder {
+  id: string;
+  name: string;
+}

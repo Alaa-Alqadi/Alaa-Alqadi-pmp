@@ -7,6 +7,7 @@ export interface Translations {
   saveChanges: string;
   delete: string;
   edit: string;
+  close: string;
 
   // Login
   loginTitle: string;
@@ -17,6 +18,26 @@ export interface Translations {
   loginPasswordPlaceholder: string;
   loginButton: string;
   loginError: string;
+  togglePasswordVisibility: string;
+  forgotPassword: string;
+  orSeparator: string;
+  
+  // Forgot Password Modal
+  resetPasswordTitle: string;
+  resetPasswordInstruction: string;
+  sendResetLinkButton: string;
+  resetPasswordSuccessMessage: string;
+  resetPasswordHintFlexi: string;
+
+  // Change Password Modal
+  changePassword: string;
+  currentPasswordLabel: string;
+  newPasswordLabel: string;
+  confirmNewPasswordLabel: string;
+  passwordChangedSuccess: string;
+  wrongCurrentPassword: string;
+  passwordsDoNotMatch: string;
+  passwordResetAfterAttempts: string;
 
   // Sidebar
   dashboard: string;
@@ -25,7 +46,7 @@ export interface Translations {
   manageTeam: string;
   currentUser: string;
   logout: string;
-
+  
   // Dashboard
   dashboardTitle: string;
   dashboardSubtitle: string;
@@ -34,6 +55,7 @@ export interface Translations {
   
   // Project Summary Card
   progress: string;
+  completed: string;
 
   // Project View
   editProject: string;
@@ -116,4 +138,14 @@ export interface Translations {
   csvStatus: string;
   csvPriority: string;
   csvCompletionPercentage: string;
+
+  // Sync Conflict Modal
+  syncConflictTitle: string;
+  localFileSyncConflictTitle: string;
+  syncConflictMessage: string;
+  localFileSyncConflictMessage: string;
+  syncConflictDownloadButton: string;
+  localFileSyncOpenButton: string;
+  syncConflictUploadButton: string;
+  localFileSyncSaveButton: string;
 }
