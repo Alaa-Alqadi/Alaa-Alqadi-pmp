@@ -97,6 +97,8 @@ const translations = {
     delete_project_title: 'Delete Project',
     delete_project_confirmation: 'Are you sure you want to delete this project? All associated tasks and data will be removed.',
     delete_project_warning: 'This action is irreversible.',
+    delete_task_title: 'Delete Task',
+    delete_task_confirmation: 'Are you sure you want to delete this task? This action is irreversible.',
     
     change_password: 'Change Password',
     current_password: 'Current Password',
@@ -230,7 +232,9 @@ const translations = {
     delete_project_title: 'حذف المشروع',
     delete_project_confirmation: 'هل أنت متأكد أنك تريد حذف هذا المشروع؟ سيتم حذف جميع المهام والبيانات المرتبطة به.',
     delete_project_warning: 'هذا الإجراء لا يمكن التراجع عنه.',
-    
+    delete_task_title: 'حذف المهمة',
+    delete_task_confirmation: 'هل أنت متأكد أنك تريد حذف هذه المهمة؟ هذا الإجراء لا يمكن التراجع عنه.',
+
     change_password: 'تغيير كلمة المرور',
     current_password: 'كلمة المرور الحالية',
     new_password: 'كلمة المرور الجديدة',

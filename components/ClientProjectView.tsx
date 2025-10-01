@@ -1,5 +1,5 @@
 import React from 'react';
-import { Project, Task, TaskStatus, Client } from '../types';
+import { Project, Task, TaskStatus, Client, Risk, RiskLevel } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { TranslationKey } from '../translations';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -33,13 +33,33 @@ const getProjectPhaseTextKey = (percentage: number): TranslationKey => {
     return 'not_started_yet';
 };
 
-// FIX: Added 'handover' to the type and the object to make statusLabels exhaustive for the TaskStatus enum, resolving a TypeScript error.
 const statusLabels: Record<TaskStatus, 'todo' | 'in_progress' | 'handover' | 'done' | 'cancelled'> = {
   [TaskStatus.TODO]: 'todo',
   [TaskStatus.IN_PROGRESS]: 'in_progress',
   [TaskStatus.HANDOVER]: 'handover',
   [TaskStatus.DONE]: 'done',
   [TaskStatus.CANCELLED]: 'cancelled',
+};
+
+// Risk Helper Functions
+const getRiskLevelColor = (level: RiskLevel): string => {
+    switch(level) {
+        case RiskLevel.LOW: return 'bg-green-500';
+        case RiskLevel.MEDIUM: return 'bg-yellow-500';
+        case RiskLevel.HIGH: return 'bg-red-500';
+        case RiskLevel.VERY_HIGH: return 'bg-red-700';
+        default: return 'bg-slate-500';
+    }
+};
+
+const calculateOverallRisk = (likelihood: RiskLevel, impact: RiskLevel): RiskLevel => {
+    const levelMap = { [RiskLevel.LOW]: 1, [RiskLevel.MEDIUM]: 2, [RiskLevel.HIGH]: 3, [RiskLevel.VERY_HIGH]: 4 };
+    const score = levelMap[likelihood] * levelMap[impact];
+    
+    if (score > 8) return RiskLevel.VERY_HIGH;
+    if (score > 4) return RiskLevel.HIGH;
+    if (score > 2) return RiskLevel.MEDIUM;
+    return RiskLevel.LOW;
 };
 
 interface ClientProjectViewProps {
@@ -50,6 +70,7 @@ interface ClientProjectViewProps {
 
 const ClientProjectView: React.FC<ClientProjectViewProps> = ({ project, client, onLogout }) => {
   const { t, language } = useLanguage();
+  const riskLevels = Object.values(RiskLevel);
 
   const activeTasks = project.tasks.filter(t => t.status !== TaskStatus.CANCELLED);
   const projectProgress = activeTasks.length > 0
@@ -145,6 +166,68 @@ const ClientProjectView: React.FC<ClientProjectViewProps> = ({ project, client, 
                 </div>
                 ))}
             </div>
+            </div>
+
+            {/* Risk Assessment Section */}
+            <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-4 border-t border-slate-700 pt-6">{t('risk_assessment')}</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Risk Matrix */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2 text-slate-300">{t('risk_matrix_title')}</h3>
+                        <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr] gap-1 text-center text-xs p-2 bg-slate-800 rounded-md items-center">
+                            {/* Headers */}
+                            <div className="font-bold text-slate-400 p-1 text-right">{t('likelihood')} \ {t('impact')}</div>
+                            {riskLevels.map(level => (
+                                <div key={`header-${level}`} className="font-bold p-1">{t(level.toLowerCase() as any)}</div>
+                            ))}
+                            {/* Matrix Rows */}
+                            {riskLevels.map(likelihood => (
+                                <React.Fragment key={`row-${likelihood}`}>
+                                    <div className="font-bold p-1 text-right">{t(likelihood.toLowerCase() as any)}</div>
+                                    {riskLevels.map(impact => {
+                                        const overallRisk = calculateOverallRisk(likelihood, impact);
+                                        return (
+                                            <div key={`cell-${likelihood}-${impact}`} className={`p-2 rounded ${getRiskLevelColor(overallRisk)} text-white font-semibold flex items-center justify-center h-full`}>
+                                                {t(overallRisk.toLowerCase() as any)}
+                                            </div>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Saved Risks List */}
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2 text-slate-300">{t('saved_risks')}</h3>
+                        {project.risks.length > 0 ? (
+                            <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                                {project.risks.map(risk => {
+                                    const overallRisk = calculateOverallRisk(risk.likelihood, risk.impact);
+                                    return (
+                                        <div key={risk.id} className="bg-slate-800 p-3 rounded-md">
+                                            <div className="flex justify-between items-start gap-3">
+                                                <p className="text-sm text-slate-200 flex-1 break-words font-medium">{risk.description || <span className="text-slate-400 italic">No description</span>}</p>
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white flex-shrink-0 ${getRiskLevelColor(overallRisk)}`}>
+                                                    {t(overallRisk.toLowerCase() as any)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-start gap-4 mt-2 text-xs text-slate-400 border-t border-slate-700/50 pt-2">
+                                                <div><span>{t('likelihood')}: </span><span className="font-medium text-slate-300">{t(risk.likelihood.toLowerCase() as any)}</span></div>
+                                                <div><span>{t('impact')}: </span><span className="font-medium text-slate-300">{t(risk.impact.toLowerCase() as any)}</span></div>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-2 pt-2 border-t border-slate-700/50"><strong>{t('mitigation_plan')}:</strong> {risk.mitigation || t('not_applicable')}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-full bg-slate-800 rounded-md">
+                                <p className="text-sm text-slate-400">{t('no_risks_saved_yet')}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
       </main>

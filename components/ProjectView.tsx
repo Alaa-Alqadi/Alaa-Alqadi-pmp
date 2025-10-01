@@ -9,6 +9,7 @@ const PencilSquareIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="non
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.134-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.067-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>;
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
 const NoSymbolIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
+const ArrowUturnLeftIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>;
 const DocumentChartBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>;
 const ShieldCheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286Zm0 13.036h.008v.008h-.008v-.008Z" /></svg>;
 
@@ -46,10 +47,10 @@ const getProgressHexColor = (percentage: number): string => {
 
 const getProjectPhaseTextKey = (percentage: number): TranslationKey => {
     const p = Math.floor(percentage);
-    if (p === 0) return 'not_started_yet';
-    if (p >= 1 && p <= 80) return 'execution_phase';
-    if (p >= 81 && p <= 90) return 'finishing_phase';
+    if (p === 100) return 'done';
     if (p >= 91) return 'handover_phase';
+    if (p >= 81) return 'finishing_phase';
+    if (p >= 1) return 'execution_phase';
     return 'not_started_yet';
 };
 
@@ -66,7 +67,7 @@ interface ProjectViewProps {
   clients: Client[];
   onAddTask: () => void;
   onEditTask: (task: Task) => void;
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (task: Task) => void;
   onUpdateTask: (taskId: string, updatedProperties: Partial<Task>) => void;
   onEditProject: (project: Project) => void;
   onDeleteProject: (project: Project) => void;
@@ -159,8 +160,10 @@ const ProjectView: React.FC<ProjectViewProps> = ({
                       <h3 className={`font-bold text-md mb-2 ${task.status === TaskStatus.CANCELLED ? 'line-through' : ''}`}>{task.title}</h3>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button onClick={() => onEditTask(task)} className="text-slate-400 hover:text-white"><PencilSquareIcon/></button>
-                        <button onClick={() => onUpdateTask(task.id, { status: TaskStatus.CANCELLED })} className="text-slate-400 hover:text-yellow-400"><NoSymbolIcon/></button>
-                        <button onClick={() => onDeleteTask(task.id)} className="text-slate-400 hover:text-red-400"><TrashIcon/></button>
+                        <button onClick={() => onUpdateTask(task.id, { status: TaskStatus.CANCELLED })} className="text-slate-400 hover:text-yellow-400">
+                          {task.status === TaskStatus.CANCELLED ? <ArrowUturnLeftIcon /> : <NoSymbolIcon />}
+                        </button>
+                        <button onClick={() => onDeleteTask(task)} className="text-slate-400 hover:text-red-400"><TrashIcon/></button>
                       </div>
                     </div>
                     <p className="text-sm text-slate-300 mb-3">{task.description}</p>

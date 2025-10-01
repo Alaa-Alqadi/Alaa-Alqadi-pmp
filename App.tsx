@@ -53,6 +53,8 @@ const App: React.FC = () => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
   
@@ -216,12 +218,19 @@ const App: React.FC = () => {
     setTaskToEdit(null);
   };
   
-  const handleDeleteTask = (taskId: string) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
+  const handleDeleteTaskClick = (task: Task) => {
+    setTaskToDelete(task);
+    setIsDeleteTaskModalOpen(true);
+  };
+
+  const handleConfirmDeleteTask = () => {
+    if (taskToDelete) {
       setProjects(prev => prev.map(p => p.id === selectedProjectId ? {
         ...p,
-        tasks: p.tasks.filter(t => t.id !== taskId)
+        tasks: p.tasks.filter(t => t.id !== taskToDelete.id)
       } : p));
+      setIsDeleteTaskModalOpen(false);
+      setTaskToDelete(null);
     }
   };
 
@@ -234,9 +243,21 @@ const App: React.FC = () => {
         tasks: p.tasks.map(t => {
           if (t.id !== taskId) return t;
           
-          const updatedTask = { ...t, ...updatedProperties };
+          let updatedTask = { ...t, ...updatedProperties };
 
-          // If completionPercentage is changed and status is not 'Cancelled', update status automatically
+          // Handle the cancel toggle functionality
+          if (updatedProperties.status === TaskStatus.CANCELLED) {
+              if (t.status === TaskStatus.CANCELLED) {
+                  // Task is already cancelled, so un-cancel it.
+                  updatedTask.status = t.previousStatus || TaskStatus.TODO;
+                  updatedTask.previousStatus = undefined; // Clear previous status
+              } else {
+                  // Task is not cancelled, so cancel it and store the current status.
+                  updatedTask.previousStatus = t.status;
+              }
+          }
+
+          // Auto-update status based on percentage, but only if not cancelled
           if (updatedProperties.completionPercentage !== undefined && updatedTask.status !== TaskStatus.CANCELLED) {
             updatedTask.status = getStatusFromPercentage(updatedProperties.completionPercentage);
           }
@@ -339,7 +360,7 @@ const App: React.FC = () => {
             clients={clients}
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
-            onDeleteTask={handleDeleteTask}
+            onDeleteTask={handleDeleteTaskClick}
             onUpdateTask={handleUpdateTask}
             onEditProject={handleEditProject}
             onDeleteProject={handleDeleteProjectClick}
@@ -357,7 +378,8 @@ const App: React.FC = () => {
       {isAddTaskModalOpen && selectedProject && <AddTaskModal isOpen={isAddTaskModalOpen} onClose={() => setIsAddTaskModalOpen(false)} onSave={handleSaveTask} task={taskToEdit} teamMembers={teamMembers} />}
       {isTeamModalOpen && <TeamManagementModal isOpen={isTeamModalOpen} onClose={() => setIsTeamModalOpen(false)} teamMembers={teamMembers} onAddMember={handleAddTeamMember} onUpdateMember={handleUpdateTeamMember} onDeleteMember={handleDeleteTeamMember} />}
       {isClientModalOpen && <ClientManagementModal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />}
-      {isDeleteModalOpen && projectToDelete && <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDeleteProject} projectName={projectToDelete.name} />}
+      {isDeleteModalOpen && projectToDelete && <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDeleteProject} title={t('delete_project_title')} message={t('delete_project_confirmation').replace('this project', `"${projectToDelete.name}"`)} warning={t('delete_project_warning')} />}
+      {isDeleteTaskModalOpen && taskToDelete && <DeleteConfirmationModal isOpen={isDeleteTaskModalOpen} onClose={() => setIsDeleteTaskModalOpen(false)} onConfirm={handleConfirmDeleteTask} title={t('delete_task_title')} message={t('delete_task_confirmation').replace('this task', `"${taskToDelete.title}"`)} />}
       {isChangePasswordModalOpen && <ChangePasswordModal isOpen={isChangePasswordModalOpen} onClose={() => setIsChangePasswordModalOpen(false)} onChangePassword={handleChangePassword} onResetPassword={handleResetPassword} />}
       {isRiskModalOpen && selectedProject && <RiskAssessmentModal isOpen={isRiskModalOpen} onClose={() => setIsRiskModalOpen(false)} risks={selectedProject.risks} onSave={handleSaveRisks} />}
     </div>

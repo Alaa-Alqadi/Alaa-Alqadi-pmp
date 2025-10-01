@@ -39,6 +39,7 @@ export interface Task {
   priority: TaskPriority;
   completionPercentage: number;
   createdDate: string;
+  previousStatus?: TaskStatus;
 }
 
 export interface Client {
