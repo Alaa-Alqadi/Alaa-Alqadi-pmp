@@ -18,7 +18,7 @@ export const ALLOWED_EMAILS = [
   'accounts@flexi-is.com',
 ];
 
-export const DEFAULT_PASSWORD = 'Flexi@2030$';
+export const DEFAULT_PASSWORD = 'FIS2030';
 
 export const INITIAL_PROJECTS: Project[] = [
   {
