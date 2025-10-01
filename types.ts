@@ -12,8 +12,24 @@ export enum TaskPriority {
   HIGH = 'HIGH',
 }
 
-export interface Task {
+export enum RiskLevel {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  VERY_HIGH = 'VERY_HIGH',
+}
+
+export interface Risk {
   id: string;
+  description: string;
+  likelihood: RiskLevel;
+  impact: RiskLevel;
+  mitigation: string;
+  residualImpact?: RiskLevel;
+}
+
+export interface Task {
+  id:string;
   title: string;
   description: string;
   assignee: string;
@@ -40,4 +56,5 @@ export interface Project {
   contractId?: string;
   quoteId?: string;
   tasks: Task[];
+  risks: Risk[];
 }

@@ -10,6 +10,8 @@ const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" view
 const PlusIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>;
 const NoSymbolIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" /></svg>;
 const DocumentChartBarIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>;
+const ShieldCheckIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286Zm0 13.036h.008v.008h-.008v-.008Z" /></svg>;
+
 
 const getTaskProgressStyle = (percentage: number): { border: string; bg: string } => {
   if (percentage === 100) return { border: 'border-l-4 border-green-500', bg: 'bg-green-500' };
@@ -68,6 +70,7 @@ interface ProjectViewProps {
   onUpdateTask: (taskId: string, updatedProperties: Partial<Task>) => void;
   onEditProject: (project: Project) => void;
   onDeleteProject: (project: Project) => void;
+  onOpenRiskAssessment: () => void;
   columnOrder: TaskStatus[];
   onColumnReorder: (newOrder: TaskStatus[]) => void;
 }
@@ -81,6 +84,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({
   onUpdateTask,
   onEditProject,
   onDeleteProject,
+  onOpenRiskAssessment,
   columnOrder,
 }) => {
   const { t } = useLanguage();
@@ -105,6 +109,9 @@ const ProjectView: React.FC<ProjectViewProps> = ({
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-3xl font-bold">{project.name}</h1>
           <div className="flex gap-2">
+            <button onClick={onOpenRiskAssessment} className="flex items-center gap-2 py-2 px-4 bg-amber-600 hover:bg-amber-700 rounded-md text-sm font-medium">
+              <ShieldCheckIcon /> {t('risk_assessment')}
+            </button>
             <button onClick={() => setIsReportModalOpen(true)} className="flex items-center gap-2 py-2 px-4 bg-teal-600 hover:bg-teal-700 rounded-md text-sm font-medium">
               <DocumentChartBarIcon /> {t('project_report')}
             </button>

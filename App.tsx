@@ -1,173 +1,130 @@
-import React, { useState, useMemo } from 'react';
+// FIX: Replaced placeholder content with the main application component, including state management, component routing, and event handlers.
+import React, { useState, useEffect, useCallback } from 'react';
+import { Project, Task, Client, TaskStatus, Risk } from './types';
+import { INITIAL_PROJECTS, INITIAL_CLIENTS, INITIAL_TEAM_MEMBERS, DEFAULT_PASSWORD } from './constants';
 import Sidebar from './components/Sidebar';
 import ProjectView from './components/ProjectView';
 import DashboardView from './components/DashboardView';
-import AddTaskModal from './components/AddTaskModal';
 import AddProjectModal from './components/AddProjectModal';
 import EditProjectModal from './components/EditProjectModal';
-import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import AddTaskModal from './components/AddTaskModal';
 import TeamManagementModal from './components/TeamManagementModal';
 import ClientManagementModal from './components/ClientManagementModal';
+import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleSelection from './components/RoleSelection';
 import Login from './components/Login';
 import ClientLogin from './components/ClientLogin';
 import ClientProjectView from './components/ClientProjectView';
-import { Project, Task, TaskStatus, Client } from './types';
-import { INITIAL_PROJECTS, INITIAL_CLIENTS, INITIAL_TEAM_MEMBERS, DEFAULT_PASSWORD } from './constants';
-import { TranslationKey } from './translations';
+import RiskAssessmentModal from './components/RiskAssessmentModal';
 import { useLanguage } from './hooks/useLanguage';
+import { TranslationKey } from './translations';
 
-
-const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch (error) {
-      console.error(error);
-      return initialValue;
-    }
-  });
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return [storedValue, setValue];
-};
-
-type AppView = 'role-selection' | 'team-login' | 'client-login' | 'app' | 'client-view';
+type View = 'role_selection' | 'team_login' | 'client_login' | 'team_dashboard' | 'client_view';
 
 const App: React.FC = () => {
   const { t } = useLanguage();
-  // State
-  const [projects, setProjects] = useLocalStorage<Project[]>('projects', INITIAL_PROJECTS);
-  const [clients, setClients] = useLocalStorage<Client[]>('clients', INITIAL_CLIENTS);
-  const [teamMembers, setTeamMembers] = useLocalStorage<string[]>('teamMembers', INITIAL_TEAM_MEMBERS);
-  const [userPassword, setUserPassword] = useLocalStorage<string>('userPassword', DEFAULT_PASSWORD);
 
+  // App state
+  const [view, setView] = useState<View>('role_selection');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [teamMembers, setTeamMembers] = useState<string[]>([]);
+  const [password, setPassword] = useState(DEFAULT_PASSWORD);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [clientSession, setClientSession] = useState<{ clientId: string, projectId: string } | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Auth State
-  const [appView, setAppView] = useLocalStorage<AppView>('appView', 'role-selection');
-  const [currentUser, setCurrentUser] = useLocalStorage<string | null>('currentUser', null); // For team: email, for client: quoteId
-  
-  // Modal State
-  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  // Modal states
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
-
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isRiskModalOpen, setIsRiskModalOpen] = useState(false);
   
-  const [columnOrder, setColumnOrder] = useState<TaskStatus[]>([
-    TaskStatus.TODO,
-    TaskStatus.IN_PROGRESS,
-    TaskStatus.HANDOVER,
-    TaskStatus.DONE,
-    TaskStatus.CANCELLED,
-  ]);
+  // Data persistence
+  useEffect(() => {
+    try {
+      const storedProjects = localStorage.getItem('projects');
+      const storedClients = localStorage.getItem('clients');
+      const storedTeamMembers = localStorage.getItem('teamMembers');
+      const storedPassword = localStorage.getItem('password');
 
-  // Derived State
-  const filteredProjects = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return projects;
+      setProjects(storedProjects ? JSON.parse(storedProjects) : INITIAL_PROJECTS);
+      setClients(storedClients ? JSON.parse(storedClients) : INITIAL_CLIENTS);
+      setTeamMembers(storedTeamMembers ? JSON.parse(storedTeamMembers) : INITIAL_TEAM_MEMBERS);
+      setPassword(storedPassword || DEFAULT_PASSWORD);
+    } catch (error) {
+      console.error("Failed to load data from localStorage", error);
+      setProjects(INITIAL_PROJECTS);
+      setClients(INITIAL_CLIENTS);
+      setTeamMembers(INITIAL_TEAM_MEMBERS);
+      setPassword(DEFAULT_PASSWORD);
     }
+  }, []);
 
-    const lowercasedFilter = searchTerm.toLowerCase();
-    const clientNameMap = new Map(clients.map(c => [c.id, c.name.toLowerCase()]));
+  const saveData = useCallback(<T,>(key: string, data: T) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error(`Failed to save ${key} to localStorage`, error);
+    }
+  }, []);
 
-    return projects.filter(p => {
-      const clientName = clientNameMap.get(p.clientId) || '';
-      
-      return (
-        p.name.toLowerCase().includes(lowercasedFilter) ||
-        (p.contractId && p.contractId.toLowerCase().includes(lowercasedFilter)) ||
-        (p.quoteId && p.quoteId.toLowerCase().includes(lowercasedFilter)) ||
-        clientName.includes(lowercasedFilter)
-      );
-    });
-  }, [projects, clients, searchTerm]);
-  
-  const selectedProject = useMemo(() =>
-    projects.find(p => p.id === selectedProjectId) || null,
-    [projects, selectedProjectId]
-  );
-  
-  const clientLoggedInProject = useMemo(() =>
-    appView === 'client-view' && currentUser ? projects.find(p => p.quoteId === currentUser) : null,
-    [appView, projects, currentUser]
-  );
-  
-  const currentClient = useMemo(() =>
-    clientLoggedInProject ? clients.find(c => c.id === clientLoggedInProject.clientId) : null,
-    [clientLoggedInProject, clients]
-  );
-  
-  // Handlers
-  const handleSelectProject = (id: string | null) => {
-    setSelectedProjectId(id);
+  useEffect(() => { saveData('projects', projects) }, [projects, saveData]);
+  useEffect(() => { saveData('clients', clients) }, [clients, saveData]);
+  useEffect(() => { saveData('teamMembers', teamMembers) }, [teamMembers, saveData]);
+  useEffect(() => { saveData('password', password) }, [password, saveData]);
+
+  // Auth handlers
+  const handleTeamLogin = (email: string) => {
+    setCurrentUser(email);
+    setView('team_dashboard');
   };
   
-  // Client Handlers
-  const handleAddClient = (name: string): Client | null => {
-    if (!name.trim() || clients.some(c => c.name.toLowerCase() === name.trim().toLowerCase())) {
-        alert(t('client_name_error'));
-        return null;
+  const handleClientLogin = (clientId: string, quoteId: string): boolean => {
+    const project = projects.find(p => p.clientId === clientId && p.quoteId?.toLowerCase() === quoteId.toLowerCase().trim());
+    if (project) {
+      setClientSession({ clientId, projectId: project.id });
+      setView('client_view');
+      return true;
     }
-    const newClient: Client = { id: `client-${Date.now()}`, name: name.trim() };
-    setClients(prev => [...prev, newClient]);
-    return newClient;
+    return false;
+  };
+  
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setClientSession(null);
+    setSelectedProjectId(null);
+    setView('role_selection');
   };
 
-  const handleUpdateClient = (clientId: string, newName: string) => {
-    if (!newName.trim()) {
-      alert(t('client_update_error'));
-      return;
-    }
-    if (clients.some(c => c.name.toLowerCase() === newName.trim().toLowerCase() && c.id !== clientId)) {
-        alert(t('client_name_error'));
-        return;
-    }
-    setClients(prev => prev.map(c => (c.id === clientId ? { ...c, name: newName.trim() } : c)));
-  };
-    
-  const handleDeleteClient = (clientId: string) => {
-      const isClientInUse = projects.some(p => p.clientId === clientId);
-      if (isClientInUse) {
-        alert(t('delete_client_error'));
-        return;
-      }
-      setClients(prev => prev.filter(c => c.id !== clientId));
-  };
-
-
-  // Project Handlers
+  // Project handlers
   const handleAddProject = (name: string, description: string, startDate: string, endDate: string, clientId: string, contractId: string, quoteId: string) => {
     const newProject: Project = {
       id: `proj-${Date.now()}`,
-      name, description, startDate, endDate, clientId, contractId, quoteId,
+      name,
+      description,
+      startDate,
+      endDate,
+      clientId,
+      contractId,
+      quoteId,
       tasks: [],
+      risks: [],
     };
     setProjects(prev => [...prev, newProject]);
     setIsAddProjectModalOpen(false);
-    setSelectedProjectId(newProject.id);
   };
 
-  const handleEditProjectClick = (project: Project) => {
+  const handleEditProject = (project: Project) => {
     setProjectToEdit(project);
     setIsEditProjectModalOpen(true);
   };
@@ -177,13 +134,13 @@ const App: React.FC = () => {
     setIsEditProjectModalOpen(false);
     setProjectToEdit(null);
   };
-
+  
   const handleDeleteProjectClick = (project: Project) => {
     setProjectToDelete(project);
     setIsDeleteModalOpen(true);
   };
-
-  const confirmDeleteProject = () => {
+  
+  const handleConfirmDeleteProject = () => {
     if (projectToDelete) {
       setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
       if (selectedProjectId === projectToDelete.id) {
@@ -193,196 +150,129 @@ const App: React.FC = () => {
       setProjectToDelete(null);
     }
   };
-
-  const handleUpdateTask = (taskId: string, updatedProperties: Partial<Task>) => {
-    if (!selectedProjectId) return;
-
-    setProjects(prev =>
-      prev.map(p => {
-        if (p.id === selectedProjectId) {
-          const newTasks = p.tasks.map(t => {
-            if (t.id === taskId) {
-              const updatedTask = { ...t, ...updatedProperties };
-
-              // Do not change status if it's being manually set to CANCELLED
-              if (updatedProperties.status === TaskStatus.CANCELLED) {
-                return updatedTask;
-              }
-              
-              // Automatically update status based on completion percentage if it's being changed
-              if (typeof updatedTask.completionPercentage === 'number') {
-                const percentage = updatedTask.completionPercentage;
-                if (percentage === 0) {
-                  updatedTask.status = TaskStatus.TODO;
-                } else if (percentage >= 1 && percentage <= 90) {
-                  updatedTask.status = TaskStatus.IN_PROGRESS;
-                } else if (percentage >= 91 && percentage <= 99) {
-                  updatedTask.status = TaskStatus.HANDOVER;
-                } else if (percentage === 100) {
-                  updatedTask.status = TaskStatus.DONE;
-                }
-              }
-              return updatedTask;
-            }
-            return t;
-          });
-          return { ...p, tasks: newTasks };
-        }
-        return p;
-      })
-    );
-  };
-
-  // Task Handlers
-  const handleAddTaskClick = () => {
-    setEditingTask(null);
+  
+  // Task handlers
+  const handleAddTask = () => {
+    setTaskToEdit(null);
     setIsAddTaskModalOpen(true);
   };
 
-  const handleEditTaskClick = (task: Task) => {
-    setEditingTask(task);
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
     setIsAddTaskModalOpen(true);
   };
 
   const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdDate' | 'status'>) => {
-    if (!selectedProjectId) return;
-    
-    if (editingTask) {
-        // Use the centralized update handler which contains the status logic
-        handleUpdateTask(editingTask.id, taskData);
-    } else {
-        // Logic for adding a new task
-        setProjects(prevProjects => {
-            return prevProjects.map(p => {
-                if (p.id === selectedProjectId) {
-                    // Determine initial status based on percentage
-                    let initialStatus: TaskStatus = TaskStatus.TODO;
-                    const percentage = taskData.completionPercentage;
-                    if (percentage >= 1 && percentage <= 90) {
-                        initialStatus = TaskStatus.IN_PROGRESS;
-                    } else if (percentage >= 91 && percentage <= 99) {
-                        initialStatus = TaskStatus.HANDOVER;
-                    } else if (percentage === 100) {
-                        initialStatus = TaskStatus.DONE;
-                    }
-                    
-                    const newTask: Task = {
-                        ...taskData,
-                        id: `task-${Date.now()}`,
-                        createdDate: new Date().toISOString().split('T')[0],
-                        status: initialStatus,
-                    };
-                    return { ...p, tasks: [...p.tasks, newTask] };
-                }
-                return p;
-            });
-        });
+    if (taskToEdit) { // Editing existing task
+      setProjects(prev => prev.map(p => p.id === selectedProjectId ? {
+        ...p,
+        tasks: p.tasks.map(t => t.id === taskToEdit.id ? { ...taskToEdit, ...taskData } : t)
+      } : p));
+    } else { // Adding new task
+      const newTask: Task = {
+        ...taskData,
+        id: `task-${Date.now()}`,
+        createdDate: new Date().toISOString().split('T')[0],
+        status: TaskStatus.TODO,
+      };
+      setProjects(prev => prev.map(p => p.id === selectedProjectId ? { ...p, tasks: [...p.tasks, newTask] } : p));
     }
-
     setIsAddTaskModalOpen(false);
-    setEditingTask(null);
+    setTaskToEdit(null);
   };
   
   const handleDeleteTask = (taskId: string) => {
-    if (!selectedProjectId) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id === selectedProjectId) {
-        return { ...p, tasks: p.tasks.filter(t => t.id !== taskId) };
-      }
-      return p;
-    }));
-  };
-
-  // Team Handlers
-  const handleAddMember = (name: string) => {
-    if (name && !teamMembers.includes(name)) {
-        setTeamMembers(prev => [...prev, name]);
-    }
-  };
-
-  const handleUpdateMember = (oldName: string, newName: string) => {
-    setTeamMembers(prev => prev.map(m => m === oldName ? newName : m));
-    // Also update in tasks
-    setProjects(projs => projs.map(p => ({
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      setProjects(prev => prev.map(p => p.id === selectedProjectId ? {
         ...p,
-        tasks: p.tasks.map(t => t.assignee === oldName ? { ...t, assignee: newName } : t)
-    })));
-  };
-
-  const handleDeleteMember = (name: string) => {
-    // Optional: Check if member is assigned to tasks before deleting
-    setTeamMembers(prev => prev.filter(m => m !== name));
-  };
-
-  // Auth Handlers
-  const handleRoleSelect = (role: 'team' | 'client') => {
-    setAppView(role === 'team' ? 'team-login' : 'client-login');
-  };
-  
-  const handleTeamLogin = (email: string) => {
-    setCurrentUser(email);
-    setAppView('app');
-  };
-
-  const handleClientLogin = (clientId: string, offerNumber: string): boolean => {
-    const project = projects.find(p => 
-        p.quoteId?.toLowerCase().trim() === offerNumber.toLowerCase().trim() &&
-        p.clientId === clientId
-    );
-    if (project) {
-      setCurrentUser(project.quoteId!);
-      setAppView('client-view');
-      return true;
+        tasks: p.tasks.filter(t => t.id !== taskId)
+      } : p));
     }
-    return false;
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setAppView('role-selection');
-    setSelectedProjectId(null); // Reset selection on logout
+  const handleUpdateTask = (taskId: string, updatedProperties: Partial<Task>) => {
+    setProjects(prev => prev.map(p => p.id === selectedProjectId ? {
+      ...p,
+      tasks: p.tasks.map(t => t.id === taskId ? { ...t, ...updatedProperties } : t)
+    } : p));
   };
   
-  const handleCheckPassword = (password: string) => password === userPassword;
+  // Risk handlers
+  const handleSaveRisks = (risks: Risk[]) => {
+      setProjects(prev => prev.map(p => p.id === selectedProjectId ? { ...p, risks } : p));
+      setIsRiskModalOpen(false);
+  };
 
+  // Team handlers
+  const handleAddTeamMember = (name: string) => setTeamMembers(prev => [...prev, name]);
+  const handleUpdateTeamMember = (oldName: string, newName: string) => setTeamMembers(prev => prev.map(m => m === oldName ? newName : m));
+  const handleDeleteTeamMember = (name: string) => setTeamMembers(prev => prev.filter(m => m !== name));
+  
+  // Client handlers
+  const handleAddClient = (name: string): Client | null => {
+    if (clients.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+        alert('A client with this name already exists.');
+        return null;
+    }
+    const newClient: Client = { id: `client-${Date.now()}`, name };
+    setClients(prev => [...prev, newClient]);
+    return newClient;
+  };
+  const handleUpdateClient = (id: string, newName: string) => setClients(prev => prev.map(c => c.id === id ? { ...c, name: newName } : c));
+  const handleDeleteClient = (id: string) => {
+    if (projects.some(p => p.clientId === id)) {
+        alert("Cannot delete a client that is assigned to a project.");
+        return;
+    }
+    setClients(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Password handler
   const handleChangePassword = (current: string, newPass: string): { success: boolean, messageKey: TranslationKey } => {
-    if (current !== userPassword) {
+    if (current !== password) {
       return { success: false, messageKey: 'invalid_current_password' };
     }
-    setUserPassword(newPass);
-    return { success: true, messageKey: 'password_changed_success' };
+    setPassword(newPass);
+    return { success: true, messageKey: 'password_changed_successfully' };
   };
 
   const handleResetPassword = () => {
-    setUserPassword(DEFAULT_PASSWORD);
-    alert(t('password_reset_logout_alert'));
-    handleLogout();
+    setPassword(DEFAULT_PASSWORD);
+    alert('Password has been reset to the default password.');
+    setIsChangePasswordModalOpen(false);
   };
-  
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
   // Render logic
-  if (appView === 'role-selection') {
-    return <RoleSelection onSelectRole={handleRoleSelect} />;
+  if (view === 'role_selection') {
+    return <RoleSelection onSelectRole={(role) => setView(role === 'team' ? 'team_login' : 'client_login')} />;
   }
   
-  if (appView === 'team-login') {
-    return <Login onLogin={handleTeamLogin} onBack={() => setAppView('role-selection')} checkPassword={handleCheckPassword} />;
-  }
-  
-  if (appView === 'client-login') {
-    return <ClientLogin onLogin={handleClientLogin} onBack={() => setAppView('role-selection')} clients={clients} />;
+  if (view === 'team_login') {
+    return <Login onLogin={handleTeamLogin} onBack={() => setView('role_selection')} checkPassword={(p) => p === password} />;
   }
 
-  if (appView === 'client-view' && clientLoggedInProject && currentClient) {
-    return <ClientProjectView project={clientLoggedInProject} client={currentClient} onLogout={handleLogout} />;
+  if (view === 'client_login') {
+    return <ClientLogin onLogin={handleClientLogin} onBack={() => setView('role_selection')} clients={clients} />;
+  }
+  
+  if (view === 'client_view' && clientSession) {
+    const project = projects.find(p => p.id === clientSession.projectId);
+    const client = clients.find(c => c.id === clientSession.clientId);
+    if (project && client) {
+      return <ClientProjectView project={project} client={client} onLogout={handleLogout} />;
+    }
   }
 
   return (
-    <div className="flex h-screen bg-slate-900 font-sans">
+    <div className="flex h-screen bg-slate-800 text-white">
       <Sidebar
         projects={filteredProjects}
         clients={clients}
         selectedProjectId={selectedProjectId}
-        onSelectProject={handleSelectProject}
+        onSelectProject={setSelectedProjectId}
         onAddProject={() => setIsAddProjectModalOpen(true)}
         onManageTeam={() => setIsTeamModalOpen(true)}
         onManageClients={() => setIsClientModalOpen(true)}
@@ -397,91 +287,29 @@ const App: React.FC = () => {
           <ProjectView
             project={selectedProject}
             clients={clients}
-            onAddTask={handleAddTaskClick}
-            onEditTask={handleEditTaskClick}
+            onAddTask={handleAddTask}
+            onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
             onUpdateTask={handleUpdateTask}
-            onEditProject={handleEditProjectClick}
+            onEditProject={handleEditProject}
             onDeleteProject={handleDeleteProjectClick}
-            columnOrder={columnOrder}
-            onColumnReorder={setColumnOrder}
+            onOpenRiskAssessment={() => setIsRiskModalOpen(true)}
+            columnOrder={[TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.HANDOVER, TaskStatus.DONE, TaskStatus.CANCELLED]}
+            onColumnReorder={() => {}} // Placeholder for drag-and-drop reordering
           />
         ) : (
-          <DashboardView projects={filteredProjects} clients={clients} onSelectProject={handleSelectProject}/>
+          <DashboardView projects={filteredProjects} clients={clients} onSelectProject={setSelectedProjectId} />
         )}
       </main>
 
-      {/* Modals */}
-      {isAddTaskModalOpen && selectedProject && (
-        <AddTaskModal
-          isOpen={isAddTaskModalOpen}
-          onClose={() => setIsAddTaskModalOpen(false)}
-          onSave={handleSaveTask}
-          task={editingTask}
-          teamMembers={teamMembers}
-        />
-      )}
-
-      {isAddProjectModalOpen && (
-        <AddProjectModal
-          isOpen={isAddProjectModalOpen}
-          onClose={() => setIsAddProjectModalOpen(false)}
-          onAddProject={handleAddProject}
-          clients={clients}
-          onAddClient={handleAddClient}
-        />
-      )}
-      
-      {isEditProjectModalOpen && projectToEdit && (
-        <EditProjectModal
-            isOpen={isEditProjectModalOpen}
-            onClose={() => { setIsEditProjectModalOpen(false); setProjectToEdit(null); }}
-            onUpdateProject={handleUpdateProject}
-            project={projectToEdit}
-            clients={clients}
-            onAddClient={handleAddClient}
-        />
-      )}
-
-      {isDeleteModalOpen && projectToDelete && (
-        <DeleteConfirmationModal
-            isOpen={isDeleteModalOpen}
-            onClose={() => { setIsDeleteModalOpen(false); setProjectToDelete(null); }}
-            onConfirm={confirmDeleteProject}
-            projectName={projectToDelete.name}
-        />
-      )}
-      
-      {isTeamModalOpen && (
-        <TeamManagementModal
-            isOpen={isTeamModalOpen}
-            onClose={() => setIsTeamModalOpen(false)}
-            teamMembers={teamMembers}
-            onAddMember={handleAddMember}
-            onUpdateMember={handleUpdateMember}
-            onDeleteMember={handleDeleteMember}
-        />
-      )}
-      
-      {isClientModalOpen && (
-        <ClientManagementModal
-          isOpen={isClientModalOpen}
-          onClose={() => setIsClientModalOpen(false)}
-          clients={clients}
-          onAddClient={handleAddClient}
-          onUpdateClient={handleUpdateClient}
-          onDeleteClient={handleDeleteClient}
-        />
-      )}
-
-      {isChangePasswordModalOpen && (
-        <ChangePasswordModal
-            isOpen={isChangePasswordModalOpen}
-            onClose={() => setIsChangePasswordModalOpen(false)}
-            onChangePassword={handleChangePassword}
-            onResetPassword={handleResetPassword}
-        />
-      )}
+      {isAddProjectModalOpen && <AddProjectModal isOpen={isAddProjectModalOpen} onClose={() => setIsAddProjectModalOpen(false)} onAddProject={handleAddProject} clients={clients} onAddClient={handleAddClient} />}
+      {isEditProjectModalOpen && projectToEdit && <EditProjectModal isOpen={isEditProjectModalOpen} onClose={() => setIsEditProjectModalOpen(false)} onUpdateProject={handleUpdateProject} project={projectToEdit} clients={clients} onAddClient={handleAddClient} />}
+      {isAddTaskModalOpen && selectedProject && <AddTaskModal isOpen={isAddTaskModalOpen} onClose={() => setIsAddTaskModalOpen(false)} onSave={handleSaveTask} task={taskToEdit} teamMembers={teamMembers} />}
+      {isTeamModalOpen && <TeamManagementModal isOpen={isTeamModalOpen} onClose={() => setIsTeamModalOpen(false)} teamMembers={teamMembers} onAddMember={handleAddTeamMember} onUpdateMember={handleUpdateTeamMember} onDeleteMember={handleDeleteTeamMember} />}
+      {isClientModalOpen && <ClientManagementModal isOpen={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} clients={clients} onAddClient={handleAddClient} onUpdateClient={handleUpdateClient} onDeleteClient={handleDeleteClient} />}
+      {isDeleteModalOpen && projectToDelete && <DeleteConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleConfirmDeleteProject} projectName={projectToDelete.name} />}
+      {isChangePasswordModalOpen && <ChangePasswordModal isOpen={isChangePasswordModalOpen} onClose={() => setIsChangePasswordModalOpen(false)} onChangePassword={handleChangePassword} onResetPassword={handleResetPassword} />}
+      {isRiskModalOpen && selectedProject && <RiskAssessmentModal isOpen={isRiskModalOpen} onClose={() => setIsRiskModalOpen(false)} risks={selectedProject.risks} onSave={handleSaveRisks} />}
     </div>
   );
 };

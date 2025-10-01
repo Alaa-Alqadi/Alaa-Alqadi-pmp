@@ -80,6 +80,7 @@ export const INITIAL_PROJECTS: Project[] = [
         completionPercentage: 100,
       },
     ],
+    risks: [],
   },
   {
     id: 'proj-2',
@@ -116,6 +117,7 @@ export const INITIAL_PROJECTS: Project[] = [
         completionPercentage: 75,
       },
     ],
+    risks: [],
   },
   {
     id: 'proj-3',
@@ -127,6 +129,7 @@ export const INITIAL_PROJECTS: Project[] = [
     contractId: 'MOB-APP-GAMA-01',
     quoteId: 'QT-GAMA-2024-03',
     tasks: [],
+    risks: [],
   }
 ];
 

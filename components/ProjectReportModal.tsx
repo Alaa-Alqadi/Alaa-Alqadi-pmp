@@ -1,5 +1,5 @@
 import React from 'react';
-import { Project, Task, TaskStatus } from '../types';
+import { Project, Task, TaskStatus, Risk, RiskLevel } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { TranslationKey } from '../translations';
 
@@ -41,6 +41,36 @@ const getProgressHexColor = (percentage: number): string => {
   return '#475569';
 };
 
+// Risk Calculation Logic
+const getRiskLevelColor = (level: RiskLevel): string => {
+    switch(level) {
+        case RiskLevel.LOW: return 'bg-green-500';
+        case RiskLevel.MEDIUM: return 'bg-yellow-500';
+        case RiskLevel.HIGH: return 'bg-red-500';
+        case RiskLevel.VERY_HIGH: return 'bg-red-700';
+        default: return 'bg-slate-500';
+    }
+};
+
+const getRiskLevelHexColor = (level: RiskLevel): string => {
+    switch(level) {
+        case RiskLevel.LOW: return '#22c55e';
+        case RiskLevel.MEDIUM: return '#eab308';
+        case RiskLevel.HIGH: return '#ef4444';
+        case RiskLevel.VERY_HIGH: return '#b91c1c';
+        default: return '#64748b';
+    }
+}
+
+const calculateOverallRisk = (likelihood: RiskLevel, impact: RiskLevel): RiskLevel => {
+    const levelMap = { [RiskLevel.LOW]: 1, [RiskLevel.MEDIUM]: 2, [RiskLevel.HIGH]: 3, [RiskLevel.VERY_HIGH]: 4 };
+    const score = levelMap[likelihood] * levelMap[impact];
+    
+    if (score > 8) return RiskLevel.VERY_HIGH;
+    if (score > 4) return RiskLevel.HIGH;
+    if (score > 2) return RiskLevel.MEDIUM;
+    return RiskLevel.LOW;
+};
 
 const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose, project, clientName }) => {
   const { t } = useLanguage();
@@ -87,6 +117,20 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
       </div>
     `).join('');
 
+    const risksHTML = project.risks.length > 0 ? project.risks.map((risk: Risk) => {
+        const overallRisk = calculateOverallRisk(risk.likelihood, risk.impact);
+        return `
+            <div class="risk-item">
+            <h4>${risk.description} <span class="risk-badge" style="background-color: ${getRiskLevelHexColor(overallRisk)};">${t(overallRisk.toLowerCase() as any)}</span></h4>
+            <div class="risk-meta">
+                <p><strong>${t('likelihood')}:</strong> ${t(risk.likelihood.toLowerCase() as any)}</p>
+                <p><strong>${t('impact')}:</strong> ${t(risk.impact.toLowerCase() as any)}</p>
+            </div>
+            <p class="risk-mitigation"><strong>${t('mitigation_plan')}:</strong> ${risk.mitigation || t('not_applicable')}</p>
+            </div>
+        `;
+    }).join('') : `<p>${t('no_risks_saved_yet')}</p>`;
+
     const reportHTML = `
       <html>
         <head>
@@ -100,13 +144,18 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
             th { background-color: #f2f2f2; }
             .progress-bar { width: 100%; background-color: #f3f3f3; border: 1px solid #ccc; border-radius: 4px; }
             .progress-fill { height: 24px; width: ${Math.round(projectProgress)}%; background-color: ${progressColor}; color: white; text-align: center; line-height: 24px; border-radius: 4px; }
-            .task-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+            .task-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; page-break-inside: avoid; }
             .task-item h4 { margin-top: 0; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
             .status-badge { font-size: 0.8em; font-weight: normal; background-color: #eee; padding: 3px 8px; border-radius: 10px; }
             .task-meta { font-size: 0.9em; color: #555; margin-bottom: 10px; }
             .task-description { margin-bottom: 10px; }
             .task-progress-container { width: 100%; background-color: #f3f3f3; border-radius: 4px; }
             .task-progress-bar { height: 20px; color: white; text-align: center; line-height: 20px; border-radius: 4px; font-size: 0.9em; }
+            .risk-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; page-break-inside: avoid; }
+            .risk-item h4 { margin-top: 0; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+            .risk-badge { font-size: 0.8em; font-weight: normal; color: white; padding: 3px 8px; border-radius: 10px; }
+            .risk-meta { display: flex; gap: 20px; font-size: 0.9em; color: #555; margin-bottom: 10px; }
+            .risk-mitigation { margin-bottom: 5px; }
           </style>
         </head>
         <body>
@@ -139,6 +188,9 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
 
           <h3>${t('tasks')}</h3>
           ${tasksHTML}
+          
+          <h3>${t('risk_assessment')}</h3>
+          ${risksHTML}
         </body>
       </html>
     `;
@@ -232,6 +284,34 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
                 </div>
               ))}
             </div>
+          </div>
+          
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold mb-2">{t('risk_assessment')}</h3>
+            {project.risks.length > 0 ? (
+                <div className="space-y-4">
+                    {project.risks.map(risk => {
+                        const overallRisk = calculateOverallRisk(risk.likelihood, risk.impact);
+                        return (
+                            <div key={risk.id} className="bg-slate-700/50 p-4 rounded-md">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h4 className="font-bold text-lg flex-1">{risk.description}</h4>
+                                    <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${getRiskLevelColor(overallRisk)}`}>
+                                        {t(overallRisk.toLowerCase() as any)}
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-400 mb-3">
+                                    <div><strong>{t('likelihood')}:</strong> {t(risk.likelihood.toLowerCase() as any)}</div>
+                                    <div><strong>{t('impact')}:</strong> {t(risk.impact.toLowerCase() as any)}</div>
+                                </div>
+                                <p className="text-sm text-slate-300"><strong>{t('mitigation_plan')}:</strong> {risk.mitigation || t('not_applicable')}</p>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <p className="text-sm text-slate-400">{t('no_risks_saved_yet')}</p>
+            )}
           </div>
 
         </div>
