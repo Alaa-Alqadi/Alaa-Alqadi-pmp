@@ -114,6 +114,7 @@ const translations = {
     task_summary: 'Task Summary',
     status: 'Status',
     total_tasks: 'Total',
+    export_csv: 'Export CSV',
     
     // Risk Assessment
     risk_assessment_title: 'Risk Assessment',
@@ -126,6 +127,7 @@ const translations = {
     mitigation_plan: 'Mitigation Plan',
     saved_risks: 'Saved Risks',
     no_risks_saved_yet: 'No risks saved yet.',
+    risk_matrix_title: 'Risk Matrix',
 
     // Language
     switch_to_arabic: 'Switch to Arabic',
@@ -245,6 +247,7 @@ const translations = {
     task_summary: 'ملخص المهام',
     status: 'الحالة',
     total_tasks: 'الإجمالي',
+    export_csv: 'تصدير CSV',
 
     // Risk Assessment
     risk_assessment_title: 'تقييم المخاطر',
@@ -257,6 +260,7 @@ const translations = {
     mitigation_plan: 'خطة التخفيف',
     saved_risks: 'المخاطر المحفوظة',
     no_risks_saved_yet: 'لم يتم حفظ أي مخاطر بعد.',
+    risk_matrix_title: 'مصفوفة المخاطر',
 
     // Language
     switch_to_arabic: 'التبديل إلى العربية',

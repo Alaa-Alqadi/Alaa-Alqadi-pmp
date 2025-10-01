@@ -18,6 +18,12 @@ const statusLabels: Record<TaskStatus, TranslationKey> = {
   [TaskStatus.CANCELLED]: 'cancelled',
 };
 
+// Simple SVG Icons
+const PrintIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0c1.291-.619 2.028-1.767 2.028-3.118A4.5 4.5 0 0 0 15.75 10.5H8.25A4.5 4.5 0 0 0 3.75 15c0 1.35.737 2.499 2.028 3.118" /></svg>;
+const CloseIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>;
+const DownloadIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+
+
 // Helper functions for dynamic progress bar color
 const getProgressColorClass = (percentage: number): string => {
   const p = Math.round(percentage);
@@ -74,6 +80,7 @@ const calculateOverallRisk = (likelihood: RiskLevel, impact: RiskLevel): RiskLev
 
 const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose, project, clientName }) => {
   const { t } = useLanguage();
+  const riskLevels = Object.values(RiskLevel);
 
   if (!isOpen) {
     return null;
@@ -116,6 +123,30 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
         </div>
       </div>
     `).join('');
+
+    const riskMatrixHTML = `
+      <h4>${t('risk_matrix_title' as TranslationKey)}</h4>
+      <table class="risk-matrix">
+          <caption>${t('impact')} &rarr;</caption>
+          <thead>
+              <tr>
+                  <th scope="col" class="axis-label">${t('likelihood')} &darr;</th>
+                  ${riskLevels.map(level => `<th scope="col">${t(level.toLowerCase() as any)}</th>`).join('')}
+              </tr>
+          </thead>
+          <tbody>
+              ${riskLevels.map(likelihood => `
+                  <tr>
+                      <th scope="row">${t(likelihood.toLowerCase() as any)}</th>
+                      ${riskLevels.map(impact => {
+                          const overallRisk = calculateOverallRisk(likelihood, impact);
+                          return `<td style="background-color: ${getRiskLevelHexColor(overallRisk)}; color: white;">${t(overallRisk.toLowerCase() as any)}</td>`;
+                      }).join('')}
+                  </tr>
+              `).join('')}
+          </tbody>
+      </table>
+    `;
 
     const risksHTML = project.risks.length > 0 ? project.risks.map((risk: Risk) => {
         const overallRisk = calculateOverallRisk(risk.likelihood, risk.impact);
@@ -173,7 +204,7 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
               }
             }
             
-            h1, h2, h3 { margin-top: 1.5em; margin-bottom: 0.5em; }
+            h1, h2, h3, h4 { margin-top: 1.5em; margin-bottom: 0.5em; }
             h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -187,6 +218,11 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
             .task-description { margin-bottom: 10px; }
             .task-progress-container { width: 100%; background-color: #f3f3f3; border-radius: 4px; }
             .task-progress-bar { height: 20px; color: white; text-align: center; line-height: 20px; border-radius: 4px; font-size: 0.9em; }
+            .risk-matrix { width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center; }
+            .risk-matrix th, .risk-matrix td { border: 1px solid #ccc; padding: 6px; font-size: 0.9em; }
+            .risk-matrix thead th, .risk-matrix tbody th { background-color: #f2f2f2; }
+            .risk-matrix caption { caption-side: top; text-align: center; font-weight: bold; margin-bottom: 5px; }
+            .risk-matrix .axis-label { background-color: #e0e0e0; }
             .risk-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; page-break-inside: avoid; }
             .risk-item h4 { margin-top: 0; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
             .risk-badge { font-size: 0.8em; font-weight: normal; color: white; padding: 3px 8px; border-radius: 10px; }
@@ -230,6 +266,7 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
           ${tasksHTML}
           
           <h3>${t('risk_assessment')}</h3>
+          ${riskMatrixHTML}
           ${risksHTML}
           
           <div class="print-footer">
@@ -247,6 +284,79 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
         printWindow.close();
     }, 250);
   };
+  
+  const handleExportCSV = () => {
+    const escapeCsvCell = (cell: any): string => {
+        if (cell == null) return '';
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n') || cellStr.includes('\r')) {
+            const escapedStr = cellStr.replace(/"/g, '""');
+            return `"${escapedStr}"`;
+        }
+        return cellStr;
+    };
+
+    const rows: string[][] = [];
+
+    // Section 1: Project Summary
+    rows.push(['Project Summary']);
+    rows.push([t('project_name'), project.name]);
+    rows.push([t('client_name'), clientName]);
+    rows.push([t('start_date'), project.startDate]);
+    rows.push([t('end_date'), project.endDate]);
+    rows.push([t('contract_id'), project.contractId || t('not_applicable')]);
+    rows.push([t('quote_id'), project.quoteId || t('not_applicable')]);
+    rows.push([t('overall_progress'), `${Math.round(projectProgress)}%`]);
+    rows.push([]); // Blank row
+
+    // Section 2: Tasks
+    rows.push([t('tasks')]);
+    rows.push([t('task_title'), t('task_description'), t('assignee'), t('start_date'), t('end_date'), t('status'), t('completion_percentage')]);
+    project.tasks.forEach(task => {
+        rows.push([
+            task.title,
+            task.description,
+            task.assignee,
+            task.startDate,
+            task.endDate,
+            t(statusLabels[task.status]),
+            `${task.completionPercentage}%`
+        ]);
+    });
+    rows.push([]); // Blank row
+
+    // Section 3: Risks
+    rows.push([t('risk_assessment')]);
+    rows.push([t('risk_description'), t('likelihood'), t('impact'), t('overall_risk'), t('mitigation_plan')]);
+    project.risks.forEach(risk => {
+        const overallRisk = calculateOverallRisk(risk.likelihood, risk.impact);
+        rows.push([
+            risk.description,
+            t(risk.likelihood.toLowerCase() as TranslationKey),
+            t(risk.impact.toLowerCase() as TranslationKey),
+            t(overallRisk.toLowerCase() as TranslationKey),
+            risk.mitigation
+        ]);
+    });
+
+    const csvContent = rows.map(row => row.map(escapeCsvCell).join(',')).join('\r\n');
+    
+    // Add BOM for UTF-8 support in Excel
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeProjectName = project.name.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Project_Report_${safeProjectName}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -254,8 +364,15 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">{t('project_report')}</h2>
           <div className="flex gap-2">
-            <button onClick={handlePrint} className="py-2 px-4 bg-slate-600 hover:bg-slate-500 rounded-md text-sm">{t('print')}</button>
-            <button onClick={onClose} className="py-2 px-4 bg-slate-600 hover:bg-slate-500 rounded-md text-sm">{t('close')}</button>
+            <button onClick={handleExportCSV} className="py-2 px-4 bg-slate-600 hover:bg-slate-500 rounded-md text-sm flex items-center gap-2">
+              <DownloadIcon /> {t('export_csv')}
+            </button>
+            <button onClick={handlePrint} className="py-2 px-4 bg-slate-600 hover:bg-slate-500 rounded-md text-sm flex items-center gap-2">
+              <PrintIcon /> {t('print')}
+            </button>
+            <button onClick={onClose} className="py-2 px-4 bg-slate-600 hover:bg-slate-500 rounded-md text-sm flex items-center gap-2">
+              <CloseIcon /> {t('close')}
+            </button>
           </div>
         </div>
         
@@ -296,7 +413,7 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
               {Object.values(TaskStatus).map(status => (
                  <div key={status} className="bg-slate-700 p-3 rounded">
                     <h4 className="font-bold text-slate-300">{t(statusLabels[status])}</h4>
-                    <p className="text-2xl font-bold">{taskCounts[status] || 0}</p>
+                    <p className="text-2xl font-bold">{taskCounts[status] || 0} </p>
                 </div>
               ))}
             </div>
@@ -333,6 +450,33 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
           
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">{t('risk_assessment')}</h3>
+            
+            <div className="mb-6">
+              <h4 className="text-md font-semibold mb-2 text-slate-300">{t('risk_matrix_title' as TranslationKey)}</h4>
+              <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr] gap-1 text-center text-xs p-2 bg-slate-700/50 rounded-md items-center">
+                  {/* Row 1: Headers */}
+                  <div className="font-bold text-slate-400 p-1 text-right">{t('likelihood')} \ {t('impact')}</div>
+                  {riskLevels.map(level => (
+                      <div key={`header-${level}`} className="font-bold p-1">{t(level.toLowerCase() as any)}</div>
+                  ))}
+
+                  {/* Subsequent Rows: Likelihood level + Risk cells */}
+                  {riskLevels.map(likelihood => (
+                      <React.Fragment key={`row-${likelihood}`}>
+                          <div className="font-bold p-1 text-right">{t(likelihood.toLowerCase() as any)}</div>
+                          {riskLevels.map(impact => {
+                              const overallRisk = calculateOverallRisk(likelihood, impact);
+                              return (
+                                  <div key={`cell-${likelihood}-${impact}`} className={`p-2 rounded ${getRiskLevelColor(overallRisk)} text-white font-semibold flex items-center justify-center h-full`}>
+                                      {t(overallRisk.toLowerCase() as any)}
+                                  </div>
+                              );
+                          })}
+                      </React.Fragment>
+                  ))}
+              </div>
+            </div>
+
             {project.risks.length > 0 ? (
                 <div className="space-y-4">
                     {project.risks.map(risk => {
