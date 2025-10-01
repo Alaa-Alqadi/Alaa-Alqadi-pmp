@@ -29,13 +29,15 @@ const getProjectPhaseTextKey = (percentage: number): TranslationKey => {
     if (p === 0) return 'not_started_yet';
     if (p >= 1 && p <= 80) return 'execution_phase';
     if (p >= 81 && p <= 90) return 'finishing_phase';
-    if (p >= 91) return 'delivery_phase';
+    if (p >= 91) return 'handover_phase';
     return 'not_started_yet';
 };
 
-const statusLabels: Record<TaskStatus, 'todo' | 'in_progress' | 'done' | 'cancelled'> = {
+// FIX: Added 'handover' to the type and the object to make statusLabels exhaustive for the TaskStatus enum, resolving a TypeScript error.
+const statusLabels: Record<TaskStatus, 'todo' | 'in_progress' | 'handover' | 'done' | 'cancelled'> = {
   [TaskStatus.TODO]: 'todo',
   [TaskStatus.IN_PROGRESS]: 'in_progress',
+  [TaskStatus.HANDOVER]: 'handover',
   [TaskStatus.DONE]: 'done',
   [TaskStatus.CANCELLED]: 'cancelled',
 };

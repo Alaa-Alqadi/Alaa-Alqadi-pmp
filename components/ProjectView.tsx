@@ -34,13 +34,14 @@ const getProjectPhaseTextKey = (percentage: number): TranslationKey => {
     if (p === 0) return 'not_started_yet';
     if (p >= 1 && p <= 80) return 'execution_phase';
     if (p >= 81 && p <= 90) return 'finishing_phase';
-    if (p >= 91) return 'delivery_phase';
+    if (p >= 91) return 'handover_phase';
     return 'not_started_yet';
 };
 
-const statusLabels: Record<TaskStatus, 'todo' | 'in_progress' | 'done' | 'cancelled'> = {
+const statusLabels: Record<TaskStatus, 'todo' | 'in_progress' | 'handover' | 'done' | 'cancelled'> = {
   [TaskStatus.TODO]: 'todo',
   [TaskStatus.IN_PROGRESS]: 'in_progress',
+  [TaskStatus.HANDOVER]: 'handover',
   [TaskStatus.DONE]: 'done',
   [TaskStatus.CANCELLED]: 'cancelled',
 };
@@ -120,7 +121,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({
       
       {/* Kanban Board */}
       <div className="flex-1 overflow-x-auto pb-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 min-w-[1200px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 min-w-[1500px]">
           {columnOrder.map((status) => (
             <div key={status} className="bg-slate-900 rounded-lg p-4 flex flex-col h-full">
               <h2 className="font-bold mb-4 flex justify-between">

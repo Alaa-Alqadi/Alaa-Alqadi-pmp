@@ -16,6 +16,7 @@ export const translations = {
     // Sidebar
     add_project: 'Add Project',
     manage_team: 'Manage Team',
+    manage_clients: 'Manage Clients',
     unknown_client: 'Unknown Client',
 
     // Dashboard
@@ -34,11 +35,12 @@ export const translations = {
     not_started_yet: 'Not Started Yet',
     execution_phase: 'Execution Phase',
     finishing_phase: 'Finishing Phase',
-    delivery_phase: 'Delivery Phase',
+    handover_phase: 'Handover Phase',
 
     // Task Status
     todo: 'To Do',
     in_progress: 'In Progress',
+    handover: 'Handover',
     done: 'Done',
     cancelled: 'Cancelled',
 
@@ -68,6 +70,13 @@ export const translations = {
     new_member_name: 'New member name',
     add_member: 'Add Member',
     
+    // Client Management Modal
+    client_management_title: 'Client Management',
+    new_client_name: 'New client name',
+    add_client: 'Add Client',
+    delete_client_error: 'Cannot delete a client that is assigned to one or more projects.',
+    client_update_error: 'Client name cannot be empty.',
+
     // Delete Confirmation Modal
     delete_project_title: 'Delete Project',
     delete_project_confirmation: 'Are you sure you want to delete this project? All associated tasks will also be removed.',
@@ -128,6 +137,7 @@ export const translations = {
     // Sidebar
     add_project: 'إضافة مشروع',
     manage_team: 'إدارة الفريق',
+    manage_clients: 'إدارة العملاء',
     unknown_client: 'عميل غير معروف',
     
     // Dashboard
@@ -146,11 +156,12 @@ export const translations = {
     not_started_yet: 'لم يبدأ بعد',
     execution_phase: 'مرحلة التنفيذ',
     finishing_phase: 'مرحلة التشطيبات',
-    delivery_phase: 'مرحلة التسليم',
+    handover_phase: 'مرحلة التسليم',
     
     // Task Status
     todo: 'قيد التنفيذ',
     in_progress: 'في تقدم',
+    handover: 'تسليم',
     done: 'تم',
     cancelled: 'ملغى',
 
@@ -179,6 +190,13 @@ export const translations = {
     team_management_title: 'إدارة الفريق',
     new_member_name: 'اسم العضو الجديد',
     add_member: 'إضافة عضو',
+    
+    // Client Management Modal
+    client_management_title: 'إدارة العملاء',
+    new_client_name: 'اسم العميل الجديد',
+    add_client: 'إضافة عميل',
+    delete_client_error: 'لا يمكن حذف عميل مرتبط بمشروع واحد أو أكثر.',
+    client_update_error: 'اسم العميل لا يمكن أن يكون فارغًا.',
 
     // Delete Confirmation Modal
     delete_project_title: 'حذف المشروع',

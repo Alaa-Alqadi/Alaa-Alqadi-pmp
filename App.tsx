@@ -7,6 +7,7 @@ import AddProjectModal from './components/AddProjectModal';
 import EditProjectModal from './components/EditProjectModal';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import TeamManagementModal from './components/TeamManagementModal';
+import ClientManagementModal from './components/ClientManagementModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import RoleSelection from './components/RoleSelection';
 import Login from './components/Login';
@@ -65,6 +66,7 @@ const App: React.FC = () => {
   const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -74,15 +76,31 @@ const App: React.FC = () => {
   const [columnOrder, setColumnOrder] = useState<TaskStatus[]>([
     TaskStatus.TODO,
     TaskStatus.IN_PROGRESS,
+    TaskStatus.HANDOVER,
     TaskStatus.DONE,
     TaskStatus.CANCELLED,
   ]);
 
   // Derived State
-  const filteredProjects = useMemo(() => 
-    projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    [projects, searchTerm]
-  );
+  const filteredProjects = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return projects;
+    }
+
+    const lowercasedFilter = searchTerm.toLowerCase();
+    const clientNameMap = new Map(clients.map(c => [c.id, c.name.toLowerCase()]));
+
+    return projects.filter(p => {
+      const clientName = clientNameMap.get(p.clientId) || '';
+      
+      return (
+        p.name.toLowerCase().includes(lowercasedFilter) ||
+        (p.contractId && p.contractId.toLowerCase().includes(lowercasedFilter)) ||
+        (p.quoteId && p.quoteId.toLowerCase().includes(lowercasedFilter)) ||
+        clientName.includes(lowercasedFilter)
+      );
+    });
+  }, [projects, clients, searchTerm]);
   
   const selectedProject = useMemo(() =>
     projects.find(p => p.id === selectedProjectId) || null,
@@ -114,6 +132,28 @@ const App: React.FC = () => {
     setClients(prev => [...prev, newClient]);
     return newClient;
   };
+
+  const handleUpdateClient = (clientId: string, newName: string) => {
+    if (!newName.trim()) {
+      alert(t('client_update_error'));
+      return;
+    }
+    if (clients.some(c => c.name.toLowerCase() === newName.trim().toLowerCase() && c.id !== clientId)) {
+        alert(t('client_name_error'));
+        return;
+    }
+    setClients(prev => prev.map(c => (c.id === clientId ? { ...c, name: newName.trim() } : c)));
+  };
+    
+  const handleDeleteClient = (clientId: string) => {
+      const isClientInUse = projects.some(p => p.clientId === clientId);
+      if (isClientInUse) {
+        alert(t('delete_client_error'));
+        return;
+      }
+      setClients(prev => prev.filter(c => c.id !== clientId));
+  };
+
 
   // Project Handlers
   const handleAddProject = (name: string, description: string, startDate: string, endDate: string, clientId: string, contractId: string, quoteId: string) => {
@@ -154,6 +194,45 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateTask = (taskId: string, updatedProperties: Partial<Task>) => {
+    if (!selectedProjectId) return;
+
+    setProjects(prev =>
+      prev.map(p => {
+        if (p.id === selectedProjectId) {
+          const newTasks = p.tasks.map(t => {
+            if (t.id === taskId) {
+              const updatedTask = { ...t, ...updatedProperties };
+
+              // Do not change status if it's being manually set to CANCELLED
+              if (updatedProperties.status === TaskStatus.CANCELLED) {
+                return updatedTask;
+              }
+              
+              // Automatically update status based on completion percentage if it's being changed
+              if (typeof updatedTask.completionPercentage === 'number') {
+                const percentage = updatedTask.completionPercentage;
+                if (percentage === 0) {
+                  updatedTask.status = TaskStatus.TODO;
+                } else if (percentage >= 1 && percentage <= 90) {
+                  updatedTask.status = TaskStatus.IN_PROGRESS;
+                } else if (percentage >= 91 && percentage <= 99) {
+                  updatedTask.status = TaskStatus.HANDOVER;
+                } else if (percentage === 100) {
+                  updatedTask.status = TaskStatus.DONE;
+                }
+              }
+              return updatedTask;
+            }
+            return t;
+          });
+          return { ...p, tasks: newTasks };
+        }
+        return p;
+      })
+    );
+  };
+
   // Task Handlers
   const handleAddTaskClick = () => {
     setEditingTask(null);
@@ -167,26 +246,39 @@ const App: React.FC = () => {
 
   const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdDate' | 'status'>) => {
     if (!selectedProjectId) return;
-    setProjects(prevProjects => {
-      return prevProjects.map(p => {
-        if (p.id === selectedProjectId) {
-          let newTasks: Task[];
-          if (editingTask) { // Editing existing task
-            newTasks = p.tasks.map(t => t.id === editingTask.id ? { ...editingTask, ...taskData } : t);
-          } else { // Adding new task
-            const newTask: Task = {
-              ...taskData,
-              id: `task-${Date.now()}`,
-              createdDate: new Date().toISOString().split('T')[0],
-              status: TaskStatus.TODO,
-            };
-            newTasks = [...p.tasks, newTask];
-          }
-          return { ...p, tasks: newTasks };
-        }
-        return p;
-      });
-    });
+    
+    if (editingTask) {
+        // Use the centralized update handler which contains the status logic
+        handleUpdateTask(editingTask.id, taskData);
+    } else {
+        // Logic for adding a new task
+        setProjects(prevProjects => {
+            return prevProjects.map(p => {
+                if (p.id === selectedProjectId) {
+                    // Determine initial status based on percentage
+                    let initialStatus: TaskStatus = TaskStatus.TODO;
+                    const percentage = taskData.completionPercentage;
+                    if (percentage >= 1 && percentage <= 90) {
+                        initialStatus = TaskStatus.IN_PROGRESS;
+                    } else if (percentage >= 91 && percentage <= 99) {
+                        initialStatus = TaskStatus.HANDOVER;
+                    } else if (percentage === 100) {
+                        initialStatus = TaskStatus.DONE;
+                    }
+                    
+                    const newTask: Task = {
+                        ...taskData,
+                        id: `task-${Date.now()}`,
+                        createdDate: new Date().toISOString().split('T')[0],
+                        status: initialStatus,
+                    };
+                    return { ...p, tasks: [...p.tasks, newTask] };
+                }
+                return p;
+            });
+        });
+    }
+
     setIsAddTaskModalOpen(false);
     setEditingTask(null);
   };
@@ -196,16 +288,6 @@ const App: React.FC = () => {
     setProjects(prev => prev.map(p => {
       if (p.id === selectedProjectId) {
         return { ...p, tasks: p.tasks.filter(t => t.id !== taskId) };
-      }
-      return p;
-    }));
-  };
-
-  const handleUpdateTask = (taskId: string, updatedProperties: Partial<Task>) => {
-    if (!selectedProjectId) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id === selectedProjectId) {
-        return { ...p, tasks: p.tasks.map(t => t.id === taskId ? { ...t, ...updatedProperties } : t) };
       }
       return p;
     }));
@@ -303,6 +385,7 @@ const App: React.FC = () => {
         onSelectProject={handleSelectProject}
         onAddProject={() => setIsAddProjectModalOpen(true)}
         onManageTeam={() => setIsTeamModalOpen(true)}
+        onManageClients={() => setIsClientModalOpen(true)}
         onChangePassword={() => setIsChangePasswordModalOpen(true)}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -377,6 +460,17 @@ const App: React.FC = () => {
             onAddMember={handleAddMember}
             onUpdateMember={handleUpdateMember}
             onDeleteMember={handleDeleteMember}
+        />
+      )}
+      
+      {isClientModalOpen && (
+        <ClientManagementModal
+          isOpen={isClientModalOpen}
+          onClose={() => setIsClientModalOpen(false)}
+          clients={clients}
+          onAddClient={handleAddClient}
+          onUpdateClient={handleUpdateClient}
+          onDeleteClient={handleDeleteClient}
         />
       )}
 
