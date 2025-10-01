@@ -1,354 +1,393 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Project, Task, TaskStatus, AppData } from './types';
-import { INITIAL_APP_DATA, ALLOWED_EMAILS, CORRECT_PASSWORD } from './constants';
+import React, { useState, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import ProjectView from './components/ProjectView';
 import DashboardView from './components/DashboardView';
+import AddTaskModal from './components/AddTaskModal';
 import AddProjectModal from './components/AddProjectModal';
 import EditProjectModal from './components/EditProjectModal';
-import AddTaskModal from './components/AddTaskModal';
-import TeamManagementModal from './components/TeamManagementModal';
-import Login from './components/Login';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
-import ForgotPasswordModal from './components/ForgotPasswordModal';
+import TeamManagementModal from './components/TeamManagementModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import RoleSelection from './components/RoleSelection';
+import Login from './components/Login';
+import ClientLogin from './components/ClientLogin';
+import ClientProjectView from './components/ClientProjectView';
+import { Project, Task, TaskStatus, Client } from './types';
+import { INITIAL_PROJECTS, INITIAL_CLIENTS, INITIAL_TEAM_MEMBERS, DEFAULT_PASSWORD } from './constants';
+import { TranslationKey } from './translations';
 import { useLanguage } from './hooks/useLanguage';
-import useLocalStorage from './hooks/useLocalStorage';
 
-const getStatusFromPercentage = (percentage: number): TaskStatus => {
-  if (percentage >= 100) return TaskStatus.DONE;
-  if (percentage > 0) return TaskStatus.IN_PROGRESS;
-  return TaskStatus.TODO;
+
+const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: T | ((val: T) => T)) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return [storedValue, setValue];
 };
+
+type AppView = 'role-selection' | 'team-login' | 'client-login' | 'app' | 'client-view';
 
 const App: React.FC = () => {
   const { t } = useLanguage();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  // State
+  const [projects, setProjects] = useLocalStorage<Project[]>('projects', INITIAL_PROJECTS);
+  const [clients, setClients] = useLocalStorage<Client[]>('clients', INITIAL_CLIENTS);
+  const [teamMembers, setTeamMembers] = useLocalStorage<string[]>('teamMembers', INITIAL_TEAM_MEMBERS);
+  const [userPassword, setUserPassword] = useLocalStorage<string>('userPassword', DEFAULT_PASSWORD);
 
-  const [appData, setAppData] = useLocalStorage<AppData>('fis-pmp-data', INITIAL_APP_DATA);
-  const [correctPassword, setCorrectPassword] = useLocalStorage<string>('fis-pmp-password', CORRECT_PASSWORD);
-  const [passwordChangeAttempts, setPasswordChangeAttempts] = useState(0);
-  
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
-  const [isDeleteProjectModalOpen, setIsDeleteProjectModalOpen] = useState(false);
-  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
-
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleLogin = useCallback((email: string, password: string): boolean => {
-    const lowerEmail = email.toLowerCase();
-    // Check if the user is in the allowed list
-    if (ALLOWED_EMAILS.includes(lowerEmail)) {
-        // Allow login with either their potentially changed password
-        // or the original default password as a master key.
-        if (password === correctPassword || password === CORRECT_PASSWORD) {
-            setIsAuthenticated(true);
-            setCurrentUser(email);
-            return true;
-        }
+  // Auth State
+  const [appView, setAppView] = useLocalStorage<AppView>('appView', 'role-selection');
+  const [currentUser, setCurrentUser] = useLocalStorage<string | null>('currentUser', null); // For team: email, for client: quoteId
+  
+  // Modal State
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  
+  const [columnOrder, setColumnOrder] = useState<TaskStatus[]>([
+    TaskStatus.TODO,
+    TaskStatus.IN_PROGRESS,
+    TaskStatus.DONE,
+    TaskStatus.CANCELLED,
+  ]);
+
+  // Derived State
+  const filteredProjects = useMemo(() => 
+    projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())),
+    [projects, searchTerm]
+  );
+  
+  const selectedProject = useMemo(() =>
+    projects.find(p => p.id === selectedProjectId) || null,
+    [projects, selectedProjectId]
+  );
+  
+  const clientLoggedInProject = useMemo(() =>
+    appView === 'client-view' && currentUser ? projects.find(p => p.quoteId === currentUser) : null,
+    [appView, projects, currentUser]
+  );
+  
+  const currentClient = useMemo(() =>
+    clientLoggedInProject ? clients.find(c => c.id === clientLoggedInProject.clientId) : null,
+    [clientLoggedInProject, clients]
+  );
+  
+  // Handlers
+  const handleSelectProject = (id: string | null) => {
+    setSelectedProjectId(id);
+  };
+  
+  // Client Handlers
+  const handleAddClient = (name: string): Client | null => {
+    if (!name.trim() || clients.some(c => c.name.toLowerCase() === name.trim().toLowerCase())) {
+        alert(t('client_name_error'));
+        return null;
     }
-    return false;
-  }, [correctPassword]);
+    const newClient: Client = { id: `client-${Date.now()}`, name: name.trim() };
+    setClients(prev => [...prev, newClient]);
+    return newClient;
+  };
 
-  const handleForgotPasswordSubmit = useCallback((email: string) => {
-    // In a real app, this would trigger a backend API call to send an email.
-    // The UI now handles providing a hint for flexi-is.com users.
-    console.log(`Password reset requested for: ${email}.`);
-  }, []);
-
-  const handleChangePassword = useCallback((current: string, newPass: string): { success: boolean, messageKey: string } => {
-    if (current !== correctPassword) {
-      const newAttempts = passwordChangeAttempts + 1;
-      setPasswordChangeAttempts(newAttempts);
-      if (newAttempts >= 3) {
-        setCorrectPassword(CORRECT_PASSWORD); // Reset to default
-        setPasswordChangeAttempts(0);
-        return { success: false, messageKey: 'passwordResetAfterAttempts' };
-      }
-      return { success: false, messageKey: 'wrongCurrentPassword' };
-    }
-    
-    setCorrectPassword(newPass);
-    setPasswordChangeAttempts(0);
-    return { success: true, messageKey: 'passwordChangedSuccess' };
-  }, [correctPassword, passwordChangeAttempts, setCorrectPassword]);
-
-
-  const handleLogout = useCallback(() => {
-    setIsAuthenticated(false);
-    setCurrentUser(null);
-  }, []);
-
-  const handleAddProject = useCallback((name: string, description: string, startDate: string, endDate: string, clientName: string, contractId: string, quoteId: string) => {
-    const newProject: Project = { 
-        id: `proj-${Date.now()}`, 
-        name, 
-        description, 
-        startDate, 
-        endDate, 
-        clientName, 
-        contractId: contractId || undefined,
-        quoteId: quoteId || undefined,
-        tasks: [] 
+  // Project Handlers
+  const handleAddProject = (name: string, description: string, startDate: string, endDate: string, clientId: string, contractId: string, quoteId: string) => {
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name, description, startDate, endDate, clientId, contractId, quoteId,
+      tasks: [],
     };
-    const newData: AppData = { ...appData, projects: [...appData.projects, newProject] };
-    setAppData(newData);
-    setIsProjectModalOpen(false);
+    setProjects(prev => [...prev, newProject]);
+    setIsAddProjectModalOpen(false);
     setSelectedProjectId(newProject.id);
-  }, [appData, setAppData]);
+  };
 
-  const handleUpdateProject = useCallback((id: string, name: string, description: string, startDate: string, endDate: string, clientName: string, contractId: string, quoteId: string) => {
-    const updatedProjects = appData.projects.map(p => 
-      p.id === id ? { ...p, name, description, startDate, endDate, clientName, contractId: contractId || undefined, quoteId: quoteId || undefined } : p
-    );
-    const newData: AppData = { ...appData, projects: updatedProjects };
-    setAppData(newData);
+  const handleEditProjectClick = (project: Project) => {
+    setProjectToEdit(project);
+    setIsEditProjectModalOpen(true);
+  };
+
+  const handleUpdateProject = (id: string, name: string, description: string, startDate: string, endDate: string, clientId: string, contractId: string, quoteId: string) => {
+    setProjects(prev => prev.map(p => p.id === id ? { ...p, name, description, startDate, endDate, clientId, contractId, quoteId } : p));
     setIsEditProjectModalOpen(false);
-    setEditingProject(null);
-  }, [appData, setAppData]);
+    setProjectToEdit(null);
+  };
 
-  const handleDeleteProject = useCallback((project: Project) => {
-    setDeletingProject(project);
-    setIsDeleteProjectModalOpen(true);
-  }, []);
+  const handleDeleteProjectClick = (project: Project) => {
+    setProjectToDelete(project);
+    setIsDeleteModalOpen(true);
+  };
 
-  const handleDeleteProjectConfirm = useCallback(() => {
-    if (deletingProject) {
-      const updatedProjects = appData.projects.filter(p => p.id !== deletingProject.id);
-      const newData: AppData = { ...appData, projects: updatedProjects };
-      setAppData(newData);
-      setSelectedProjectId(null);
+  const confirmDeleteProject = () => {
+    if (projectToDelete) {
+      setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+      if (selectedProjectId === projectToDelete.id) {
+        setSelectedProjectId(null);
+      }
+      setIsDeleteModalOpen(false);
+      setProjectToDelete(null);
     }
-    setIsDeleteProjectModalOpen(false);
-    setDeletingProject(null);
-  }, [appData, deletingProject, setAppData]);
-  
-  const handleAddTask = useCallback((taskData: Omit<Task, 'id' | 'createdDate'>) => {
-    if (!selectedProjectId) return;
-    const newTask: Task = { ...taskData, id: `task-${Date.now()}`, createdDate: new Date().toISOString().split('T')[0] };
-    const updatedProjects = appData.projects.map(p => 
-      p.id === selectedProjectId ? { ...p, tasks: [...p.tasks, newTask] } : p
-    );
-    const newData: AppData = { ...appData, projects: updatedProjects };
-    setAppData(newData);
-    setIsTaskModalOpen(false);
-  }, [appData, selectedProjectId, setAppData]);
+  };
 
-  const handleEditTask = useCallback((taskData: Omit<Task, 'id' | 'createdDate'>) => {
-    if (!selectedProjectId || !editingTask) return;
-    const updatedTask: Task = { ...editingTask, ...taskData };
-    const updatedProjects = appData.projects.map(p =>
-      p.id === selectedProjectId
-        ? { ...p, tasks: p.tasks.map(t => t.id === editingTask.id ? updatedTask : t) }
-        : p
-    );
-    const newData: AppData = { ...appData, projects: updatedProjects };
-    setAppData(newData);
-    setIsTaskModalOpen(false);
+  // Task Handlers
+  const handleAddTaskClick = () => {
     setEditingTask(null);
-  }, [appData, selectedProjectId, editingTask, setAppData]);
-  
-  const handleUpdateTaskStatus = useCallback((taskId: string, updatedProperties: Partial<Task>) => {
-      if (!selectedProjectId) return;
-      const updatedProjects = appData.projects.map(p => {
+    setIsAddTaskModalOpen(true);
+  };
+
+  const handleEditTaskClick = (task: Task) => {
+    setEditingTask(task);
+    setIsAddTaskModalOpen(true);
+  };
+
+  const handleSaveTask = (taskData: Omit<Task, 'id' | 'createdDate' | 'status'>) => {
+    if (!selectedProjectId) return;
+    setProjects(prevProjects => {
+      return prevProjects.map(p => {
         if (p.id === selectedProjectId) {
-          const updatedTasks = p.tasks.map(t => {
-            if (t.id === taskId) {
-              const newPercentage = updatedProperties.completionPercentage ?? t.completionPercentage;
-              const newStatus = getStatusFromPercentage(newPercentage);
-              return { ...t, ...updatedProperties, status: newStatus };
-            }
-            return t;
-          });
-          return { ...p, tasks: updatedTasks };
+          let newTasks: Task[];
+          if (editingTask) { // Editing existing task
+            newTasks = p.tasks.map(t => t.id === editingTask.id ? { ...editingTask, ...taskData } : t);
+          } else { // Adding new task
+            const newTask: Task = {
+              ...taskData,
+              id: `task-${Date.now()}`,
+              createdDate: new Date().toISOString().split('T')[0],
+              status: TaskStatus.TODO,
+            };
+            newTasks = [...p.tasks, newTask];
+          }
+          return { ...p, tasks: newTasks };
         }
         return p;
       });
-      const newData: AppData = { ...appData, projects: updatedProjects };
-      setAppData(newData);
-  }, [appData, selectedProjectId, setAppData]);
-
-
-  const handleDeleteTask = useCallback((taskId: string) => {
+    });
+    setIsAddTaskModalOpen(false);
+    setEditingTask(null);
+  };
+  
+  const handleDeleteTask = (taskId: string) => {
     if (!selectedProjectId) return;
-    const updatedProjects = appData.projects.map(p =>
-      p.id === selectedProjectId
-        ? { ...p, tasks: p.tasks.filter(t => t.id !== taskId) }
-        : p
-    );
-    const newData: AppData = { ...appData, projects: updatedProjects };
-    setAppData(newData);
-  }, [appData, selectedProjectId, setAppData]);
+    setProjects(prev => prev.map(p => {
+      if (p.id === selectedProjectId) {
+        return { ...p, tasks: p.tasks.filter(t => t.id !== taskId) };
+      }
+      return p;
+    }));
+  };
 
-  const handleOpenEditTaskModal = useCallback((task: Task) => {
-    setEditingTask(task);
-    setIsTaskModalOpen(true);
-  }, []);
+  const handleUpdateTask = (taskId: string, updatedProperties: Partial<Task>) => {
+    if (!selectedProjectId) return;
+    setProjects(prev => prev.map(p => {
+      if (p.id === selectedProjectId) {
+        return { ...p, tasks: p.tasks.map(t => t.id === taskId ? { ...t, ...updatedProperties } : t) };
+      }
+      return p;
+    }));
+  };
 
-  const handleAddMember = useCallback((name: string) => {
-    if (!appData.teamMembers.includes(name)) {
-      const newData: AppData = { ...appData, teamMembers: [...appData.teamMembers, name] };
-      setAppData(newData);
+  // Team Handlers
+  const handleAddMember = (name: string) => {
+    if (name && !teamMembers.includes(name)) {
+        setTeamMembers(prev => [...prev, name]);
     }
-  }, [appData, setAppData]);
+  };
 
-  const handleUpdateMember = useCallback((oldName: string, newName: string) => {
-    const updatedMembers = appData.teamMembers.map(m => m === oldName ? newName : m);
-    const updatedProjects = appData.projects.map(p => ({
-      ...p,
-      tasks: p.tasks.map(t => t.assignee === oldName ? { ...t, assignee: newName } : t)
-    }));
-    const newData: AppData = { ...appData, teamMembers: updatedMembers, projects: updatedProjects };
-    setAppData(newData);
-  }, [appData, setAppData]);
+  const handleUpdateMember = (oldName: string, newName: string) => {
+    setTeamMembers(prev => prev.map(m => m === oldName ? newName : m));
+    // Also update in tasks
+    setProjects(projs => projs.map(p => ({
+        ...p,
+        tasks: p.tasks.map(t => t.assignee === oldName ? { ...t, assignee: newName } : t)
+    })));
+  };
 
-  const handleDeleteMember = useCallback((name: string) => {
-    const updatedMembers = appData.teamMembers.filter(m => m !== name);
-    // Optional: Decide what to do with tasks assigned to the deleted member
-    const updatedProjects = appData.projects.map(p => ({
-      ...p,
-      tasks: p.tasks.map(t => t.assignee === name ? { ...t, assignee: 'Unassigned' } : t)
-    }));
-    const newData: AppData = { ...appData, teamMembers: updatedMembers, projects: updatedProjects };
-    setAppData(newData);
-  }, [appData, setAppData]);
+  const handleDeleteMember = (name: string) => {
+    // Optional: Check if member is assigned to tasks before deleting
+    setTeamMembers(prev => prev.filter(m => m !== name));
+  };
+
+  // Auth Handlers
+  const handleRoleSelect = (role: 'team' | 'client') => {
+    setAppView(role === 'team' ? 'team-login' : 'client-login');
+  };
   
-  const handleAddClient = useCallback((name: string): boolean => {
-    if (appData.clients.includes(name)) return false;
-    const newData: AppData = { ...appData, clients: [...appData.clients, name] };
-    setAppData(newData);
-    return true;
-  }, [appData, setAppData]);
+  const handleTeamLogin = (email: string) => {
+    setCurrentUser(email);
+    setAppView('app');
+  };
 
-  const handleReorderColumns = useCallback((newOrder: TaskStatus[]) => {
-      const newData = { ...appData, columnOrder: newOrder };
-      setAppData(newData);
-  }, [appData, setAppData]);
-
-  const filteredProjects = useMemo(() => {
-    if (!searchTerm) return appData.projects;
-    const lowercasedSearchTerm = searchTerm.toLowerCase();
-    return appData.projects.filter(project =>
-      project.name.toLowerCase().includes(lowercasedSearchTerm) ||
-      project.clientName.toLowerCase().includes(lowercasedSearchTerm) ||
-      (project.contractId && project.contractId.toLowerCase().includes(lowercasedSearchTerm)) ||
-      (project.quoteId && project.quoteId.toLowerCase().includes(lowercasedSearchTerm))
+  const handleClientLogin = (clientId: string, offerNumber: string): boolean => {
+    const project = projects.find(p => 
+        p.quoteId?.toLowerCase().trim() === offerNumber.toLowerCase().trim() &&
+        p.clientId === clientId
     );
-  }, [appData.projects, searchTerm]);
+    if (project) {
+      setCurrentUser(project.quoteId!);
+      setAppView('client-view');
+      return true;
+    }
+    return false;
+  };
 
-  const selectedProject = useMemo(() => 
-    filteredProjects.find(p => p.id === selectedProjectId), 
-  [filteredProjects, selectedProjectId]);
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setAppView('role-selection');
+    setSelectedProjectId(null); // Reset selection on logout
+  };
   
-  if (!isAuthenticated) {
-    return (
-      <>
-        <Login 
-          onLogin={handleLogin} 
-          onForgotPassword={() => setIsForgotPasswordModalOpen(true)} 
-        />
-        <ForgotPasswordModal 
-          isOpen={isForgotPasswordModalOpen}
-          onClose={() => setIsForgotPasswordModalOpen(false)}
-          onSubmit={handleForgotPasswordSubmit}
-        />
-      </>
-    );
+  const handleCheckPassword = (password: string) => password === userPassword;
+
+  const handleChangePassword = (current: string, newPass: string): { success: boolean, messageKey: TranslationKey } => {
+    if (current !== userPassword) {
+      return { success: false, messageKey: 'invalid_current_password' };
+    }
+    setUserPassword(newPass);
+    return { success: true, messageKey: 'password_changed_success' };
+  };
+
+  const handleResetPassword = () => {
+    setUserPassword(DEFAULT_PASSWORD);
+    alert(t('password_reset_logout_alert'));
+    handleLogout();
+  };
+  
+  // Render logic
+  if (appView === 'role-selection') {
+    return <RoleSelection onSelectRole={handleRoleSelect} />;
   }
   
+  if (appView === 'team-login') {
+    return <Login onLogin={handleTeamLogin} onBack={() => setAppView('role-selection')} checkPassword={handleCheckPassword} />;
+  }
+  
+  if (appView === 'client-login') {
+    return <ClientLogin onLogin={handleClientLogin} onBack={() => setAppView('role-selection')} clients={clients} />;
+  }
+
+  if (appView === 'client-view' && clientLoggedInProject && currentClient) {
+    return <ClientProjectView project={clientLoggedInProject} client={currentClient} onLogout={handleLogout} />;
+  }
+
   return (
-    <div dir={t.language === 'en' ? 'ltr' : 'rtl'} className="flex h-screen bg-slate-950">
+    <div className="flex h-screen bg-slate-900 font-sans">
       <Sidebar
         projects={filteredProjects}
+        clients={clients}
         selectedProjectId={selectedProjectId}
-        onSelectProject={setSelectedProjectId}
-        onAddProject={() => setIsProjectModalOpen(true)}
+        onSelectProject={handleSelectProject}
+        onAddProject={() => setIsAddProjectModalOpen(true)}
         onManageTeam={() => setIsTeamModalOpen(true)}
+        onChangePassword={() => setIsChangePasswordModalOpen(true)}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         currentUser={currentUser}
         onLogout={handleLogout}
-        onChangePassword={() => setIsChangePasswordModalOpen(true)}
       />
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 p-6 overflow-auto">
         {selectedProject ? (
-          <ProjectView 
-            project={selectedProject} 
-            onAddTask={() => { setEditingTask(null); setIsTaskModalOpen(true); }}
-            onEditTask={handleOpenEditTaskModal}
+          <ProjectView
+            project={selectedProject}
+            clients={clients}
+            onAddTask={handleAddTaskClick}
+            onEditTask={handleEditTaskClick}
             onDeleteTask={handleDeleteTask}
-            onUpdateTask={handleUpdateTaskStatus}
-            onEditProject={(project) => { setEditingProject(project); setIsEditProjectModalOpen(true); }}
-            onDeleteProject={handleDeleteProject}
-            columnOrder={appData.columnOrder}
-            onColumnReorder={handleReorderColumns}
+            onUpdateTask={handleUpdateTask}
+            onEditProject={handleEditProjectClick}
+            onDeleteProject={handleDeleteProjectClick}
+            columnOrder={columnOrder}
+            onColumnReorder={setColumnOrder}
           />
         ) : (
-          <DashboardView projects={filteredProjects} onSelectProject={setSelectedProjectId} />
+          <DashboardView projects={filteredProjects} clients={clients} onSelectProject={handleSelectProject}/>
         )}
       </main>
 
-      <AddProjectModal 
-        isOpen={isProjectModalOpen} 
-        onClose={() => setIsProjectModalOpen(false)} 
-        onAddProject={handleAddProject}
-        clients={appData.clients}
-        onAddClient={handleAddClient}
-      />
+      {/* Modals */}
+      {isAddTaskModalOpen && selectedProject && (
+        <AddTaskModal
+          isOpen={isAddTaskModalOpen}
+          onClose={() => setIsAddTaskModalOpen(false)}
+          onSave={handleSaveTask}
+          task={editingTask}
+          teamMembers={teamMembers}
+        />
+      )}
 
-      {editingProject && (
-        <EditProjectModal 
-          isOpen={isEditProjectModalOpen} 
-          onClose={() => { setIsEditProjectModalOpen(false); setEditingProject(null); }} 
-          onUpdateProject={handleUpdateProject}
-          project={editingProject}
-          clients={appData.clients}
+      {isAddProjectModalOpen && (
+        <AddProjectModal
+          isOpen={isAddProjectModalOpen}
+          onClose={() => setIsAddProjectModalOpen(false)}
+          onAddProject={handleAddProject}
+          clients={clients}
           onAddClient={handleAddClient}
         />
       )}
+      
+      {isEditProjectModalOpen && projectToEdit && (
+        <EditProjectModal
+            isOpen={isEditProjectModalOpen}
+            onClose={() => { setIsEditProjectModalOpen(false); setProjectToEdit(null); }}
+            onUpdateProject={handleUpdateProject}
+            project={projectToEdit}
+            clients={clients}
+            onAddClient={handleAddClient}
+        />
+      )}
 
-      {selectedProject && (
-        <AddTaskModal 
-          isOpen={isTaskModalOpen}
-          onClose={() => { setIsTaskModalOpen(false); setEditingTask(null); }}
-          onSave={editingTask ? handleEditTask : handleAddTask}
-          task={editingTask}
-          teamMembers={appData.teamMembers}
+      {isDeleteModalOpen && projectToDelete && (
+        <DeleteConfirmationModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => { setIsDeleteModalOpen(false); setProjectToDelete(null); }}
+            onConfirm={confirmDeleteProject}
+            projectName={projectToDelete.name}
         />
       )}
       
-      <TeamManagementModal
-        isOpen={isTeamModalOpen}
-        onClose={() => setIsTeamModalOpen(false)}
-        teamMembers={appData.teamMembers}
-        onAddMember={handleAddMember}
-        onUpdateMember={handleUpdateMember}
-        onDeleteMember={handleDeleteMember}
-      />
-
-      {deletingProject && (
-        <DeleteConfirmationModal
-          isOpen={isDeleteProjectModalOpen}
-          onClose={() => setIsDeleteProjectModalOpen(false)}
-          onConfirm={handleDeleteProjectConfirm}
-          projectName={deletingProject.name}
+      {isTeamModalOpen && (
+        <TeamManagementModal
+            isOpen={isTeamModalOpen}
+            onClose={() => setIsTeamModalOpen(false)}
+            teamMembers={teamMembers}
+            onAddMember={handleAddMember}
+            onUpdateMember={handleUpdateMember}
+            onDeleteMember={handleDeleteMember}
         />
       )}
 
-      <ChangePasswordModal
-        isOpen={isChangePasswordModalOpen}
-        onClose={() => setIsChangePasswordModalOpen(false)}
-        onChangePassword={handleChangePassword}
-      />
+      {isChangePasswordModalOpen && (
+        <ChangePasswordModal
+            isOpen={isChangePasswordModalOpen}
+            onClose={() => setIsChangePasswordModalOpen(false)}
+            onChangePassword={handleChangePassword}
+            onResetPassword={handleResetPassword}
+        />
+      )}
     </div>
   );
 };

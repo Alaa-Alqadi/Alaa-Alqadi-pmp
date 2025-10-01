@@ -21,17 +21,12 @@
             },
             animation: {
               'pulse-border': 'pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'spin': 'spin 1s linear infinite',
             },
             keyframes: {
               'pulse-border': {
                 '0%, 100%': { borderColor: 'rgba(239, 68, 68, 0.9)' },
                 '50%': { borderColor: 'rgba(239, 68, 68, 0.4)' },
-              },
-              'spin': {
-                from: { transform: 'rotate(0deg)' },
-                to: { transform: 'rotate(360deg)' },
-              },
+              }
             }
           }
         }
@@ -50,12 +45,14 @@
   "imports": {
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "react": "https://aistudiocdn.com/react@^19.1.1"
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.0.4",
+    "vite": "https://aistudiocdn.com/vite@^7.1.7"
   }
 }
 </script>
-<script src="https://accounts.google.com/gsi/client" async></script>
-<script src="https://apis.google.com/js/api.js" async></script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-slate-950 text-white">
     <div id="root"></div>

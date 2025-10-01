@@ -1,65 +1,39 @@
-import React, { useMemo } from 'react';
-import { Project } from '../types';
-import ProjectSummaryCard from './ProjectSummaryCard';
+import React from 'react';
+import { Project, Client } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface DashboardViewProps {
   projects: Project[];
+  clients: Client[];
   onSelectProject: (id: string) => void;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({ projects, onSelectProject }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ projects, clients, onSelectProject }) => {
   const { t } = useLanguage();
-
-  const groupedProjects = useMemo(() => {
-    return projects.reduce((acc, project) => {
-      const client = project.clientName;
-      if (!acc[client]) {
-        acc[client] = [];
-      }
-      acc[client].push(project);
-      return acc;
-    }, {} as Record<string, Project[]>);
-  }, [projects]);
-
-  const sortedClients = useMemo(() => Object.keys(groupedProjects).sort(), [groupedProjects]);
+  const clientNameMap = new Map(clients.map(c => [c.id, c.name]));
 
   return (
-    <div className="h-full">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white">{t.dashboardTitle}</h1>
-        <p className="text-slate-400 mt-1">{t.dashboardSubtitle}</p>
-      </header>
-      
-      {projects.length === 0 ? (
-        <div className="flex items-center justify-center h-full -mt-16">
-            <div className="text-center text-slate-500">
-                <h2 className="text-2xl font-semibold">{t.noProjectsTitle}</h2>
-                <p className="mt-2">{t.noProjectsSubtitle}</p>
-            </div>
-        </div>
+    <div className="p-4 text-white flex flex-col items-center justify-center h-full text-center">
+      <h1 className="text-4xl font-bold mb-2">{t('dashboard')}</h1>
+      {projects.length > 0 ? (
+         <p className="text-slate-400 mt-2">{t('select_project_prompt')}</p>
       ) : (
-        <div className="space-y-8">
-            {sortedClients.map(clientName => (
-            <section key={clientName}>
-                <h2 className="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">
-                {clientName}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {groupedProjects[clientName].map(project => (
-                    <ProjectSummaryCard 
-                        key={project.id}
-                        project={project}
-                        onClick={() => onSelectProject(project.id)}
-                    />
-                ))}
-                </div>
-            </section>
-            ))}
-        </div>
+        <p className="text-slate-400 mt-2">{t('no_projects_found')}</p>
       )}
+       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
+         {projects.map(project => (
+           <div key={project.id} onClick={() => onSelectProject(project.id)} className="bg-slate-800 p-6 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors flex flex-col text-right">
+             <h2 className="text-xl font-bold text-white mb-2">{project.name}</h2>
+             <p className="text-slate-300 text-sm font-semibold mb-2">{clientNameMap.get(project.clientId) || t('unknown_client')}</p>
+             <p className="text-slate-400 text-sm mb-4 line-clamp-2 flex-grow">{project.description}</p>
+             <div className="text-xs text-slate-500 mt-auto">
+               <span>{project.startDate}</span> &rarr; <span>{project.endDate}</span>
+             </div>
+           </div>
+         ))}
+       </div>
     </div>
-  );
-};
+  ); 
+}
 
 export default DashboardView;
