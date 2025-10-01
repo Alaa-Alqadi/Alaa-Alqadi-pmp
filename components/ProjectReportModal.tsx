@@ -137,6 +137,42 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
           <title>${project.name} - ${t('project_report')}</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; padding: 20px; direction: ${document.dir}; }
+            
+            .print-header, .print-footer { display: none; }
+
+            @media print {
+              @page {
+                margin: 60px 20px;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+              }
+              .print-header, .print-footer {
+                display: block;
+                position: fixed;
+                left: 0;
+                right: 0;
+                width: 100%;
+                text-align: center;
+                background-color: white;
+              }
+              .print-header {
+                top: 0;
+                font-size: 1.1em;
+                font-weight: bold;
+                border-bottom: 1px solid #ccc;
+                padding: 10px 0;
+              }
+              .print-footer {
+                bottom: 0;
+                font-size: 0.8em;
+                color: #555;
+                border-top: 1px solid #ccc;
+                padding: 10px 0;
+              }
+            }
+            
             h1, h2, h3 { margin-top: 1.5em; margin-bottom: 0.5em; }
             h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -159,6 +195,10 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
           </style>
         </head>
         <body>
+          <div class="print-header">
+            FIS-Flexi Integrated Solutions
+          </div>
+
           <h1>${project.name}</h1>
           <p><strong>${t('client_name')}:</strong> ${clientName}</p>
           <p><strong>${t('project_description')}:</strong> ${project.description}</p>
@@ -191,6 +231,10 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
           
           <h3>${t('risk_assessment')}</h3>
           ${risksHTML}
+          
+          <div class="print-footer">
+            The Business Gate, Qurtubah District, ,Riyadh 13244, Saudi Arabia | www.flexi-is.com
+          </div>
         </body>
       </html>
     `;
@@ -269,6 +313,7 @@ const ProjectReportModal: React.FC<ProjectReportModalProps> = ({ isOpen, onClose
                   </div>
                   <p className="text-sm text-slate-300 mb-3">{task.description}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-xs text-slate-400 mb-3">
+                    {/* FIX: Corrected a typo to access the task's assignee property instead of trying to access it on the translation function. */}
                     <div><strong>{t('assignee')}:</strong> {task.assignee}</div>
                     <div><strong>{t('start_date')}:</strong> {task.startDate}</div>
                     <div><strong>{t('end_date')}:</strong> {task.endDate}</div>
